@@ -1,0 +1,36 @@
+/* 基本樣式 */
+body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+.view { padding: 1em; }
+#login-view { max-width: 400px; margin: 50px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+input, select, textarea, button { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+button { background-color: #007bff; color: white; border: none; cursor: pointer; }
+button:disabled { background-color: #ccc; }
+.error { color: red; }
+
+/* 儀表板佈局 */
+.dashboard-layout { display: flex; gap: 20px; }
+.sidebar { width: 200px; /* 平板左欄寬度 */ }
+.main-content { flex-grow: 1; }
+.mobile-reptile-selector { display: none; /* 手機版才顯示 */ }
+
+/* 日曆標記顏色 */
+.fc-daygrid-day-frame .fed-marker { width: 10px; height: 10px; background-color: green; border-radius: 50%; margin: 2px auto; }
+.fc-daygrid-day-frame .logged-marker { width: 10px; height: 10px; background-color: orange; border-radius: 50%; margin: 2px auto; }
+.fc-daygrid-day-frame .abnormal-marker { width: 10px; height: 10px; background-color: red; border-radius: 50%; margin: 2px auto; }
+
+
+/* Modal 樣式 */
+.modal { display: none; /* ... (標準 modal CSS) ... */ }
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .dashboard-layout {
+        flex-direction: column; /* 垂直堆疊 */
+    }
+    .sidebar {
+        display: none; /* 隱藏平板側邊欄 */
+    }
+    .mobile-reptile-selector {
+        display: block; /* 顯示手機下拉選單 */
+    }
+}

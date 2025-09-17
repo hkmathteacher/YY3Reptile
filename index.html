@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圓玄三中爬蟲飼養日誌</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.13/index.global.min.js'></script>
+</head>
+<body>
+    <div id="app-container">
+        <div id="login-view" class="view">
+            <h1>圓玄三中爬蟲飼養日誌</h1>
+            <input type="text" id="username" placeholder="帳號">
+            <input type="password" id="password" placeholder="密碼">
+            <button id="login-btn">登入</button>
+            <p id="error-message" class="error"></p>
+        </div>
+
+        <div id="dashboard-view" class="view" style="display:none;">
+            <div class="mobile-reptile-selector">
+                 <label for="reptile-selector-mobile">選擇爬蟲:</label>
+                 <select id="reptile-selector-mobile"></select>
+            </div>
+            <div class="dashboard-layout">
+                <div class="sidebar">
+                    <h3>爬蟲列表</h3>
+                    <ul id="reptile-list-sidebar"></ul>
+                </div>
+                <div class="main-content">
+                    <h2>新增飼養記錄</h2>
+                    <form id="log-form">
+                        <div class="form-group">
+                            <label for="record-date">記錄日期:</label>
+                            <input type="date" id="record-date" name="記錄日期" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="logger-name">記錄人:</label>
+                            <select id="logger-name" name="記錄人" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="reptile-name">爬蟲名稱:</label>
+                            <select id="reptile-name" name="爬蟲名稱" required></select>
+                        </div>
+                         <div class="form-group">
+                            <label for="temperature">溫度 (°C):</label>
+                            <input type="number" id="temperature" name="溫度">
+                        </div>
+                        <div class="form-group">
+                            <label for="humidity">濕度 (%):</label>
+                            <input type="number" id="humidity" name="濕度">
+                        </div>
+                        <div class="form-group">
+                            <label>是否餵食:</label>
+                            <select name="是否餵食">
+                                <option>否</option>
+                                <option>是</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="food-type">食物種類:</label>
+                            <input type="text" id="food-type" name="食物種類">
+                        </div>
+                         <div class="form-group">
+                            <label for="food-amount">食物數量:</label>
+                            <input type="number" id="food-amount" name="食物數量">
+                        </div>
+                         <div class="form-group">
+                            <label>是否換水:</label>
+                            <select name="是否換水">
+                                <option>是</option>
+                                <option>否</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="notes">備註:</label>
+                            <textarea id="notes" name="備註" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="file-upload">上傳照片/影片:</label>
+                            <input type="file" id="file-upload">
+                        </div>
+                        <button type="submit" id="submit-btn">提交記錄</button>
+                    </form>
+                    <button id="show-calendar-btn">查看歷史日曆</button>
+                    <p id="submit-status"></p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="calendar-view" class="view" style="display:none;">
+            <h2>歷史日曆</h2>
+            <select id="calendar-reptile-filter"></select>
+            <div id="calendar"></div>
+            <button id="back-to-dashboard-btn">返回儀表板</button>
+        </div>
+    </div>
+    
+    <div id="details-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3>記錄詳情</h3>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
