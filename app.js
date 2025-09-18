@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 設定
     // ===============================================================
     // ！！！！請務必換成您自己部署後的 Google Apps Script Web App URL
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxDxGdP0G-zd-aqsWdHBzVBf2RjCoUXaB2xTcUV9K8O91Fvwerp_jDGdgv8VdycBHQR/exec';
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxlevj3OgjEhlIyUyerp_rE-0-D-y8ypaJTMp4FhV47S4A5S04vrccsGqAWjDt_qiblpA/exec';
 
     // ===============================================================
     // DOM 元素獲取
@@ -351,4 +351,5 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onerror = error => reject(error);
     });
 });
+
 
