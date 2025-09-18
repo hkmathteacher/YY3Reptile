@@ -1,4 +1,4 @@
-const CACHE_NAME = 'reptile-log-cache-v1';
+const CACHE_NAME = 'reptile-log-cache-v2'; // 增加版本號以觸發更新
 const urlsToCache = [
   './',
   './index.html',
@@ -13,10 +13,43 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        
+        // 建立一個請求陣列，對跨域請求使用 'no-cors' 模式
+        const requests = urlsToCache.map(url => {
+          if (url.startsWith('http')) {
+            // 對於所有 CDN 或外部連結，建立一個 no-cors 請求
+            return new Request(url, { mode: 'no-cors' });
+          }
+          // 對於本地資源，正常請求即可
+          return url;
+        });
+
+        // 使用 addAll 搭配我們建立的請求陣列
+        return cache.addAll(requests);
+      })
+      .catch(error => {
+          // 增加更詳細的錯誤日誌，方便未來除錯
+          console.error('Failed to cache resources during install phase:', error);
       })
   );
 });
+
+// 啟用新的 Service Worker 後，刪除舊的快取
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.filter(cacheName => {
+          // 刪除所有不等於目前 CACHE_NAME 的快取
+          return cacheName !== CACHE_NAME;
+        }).map(cacheName => {
+          return caches.delete(cacheName);
+        })
+      );
+    })
+  );
+});
+
 
 // 攔截網路請求
 self.addEventListener('fetch', event => {
