@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 設定
     // ===============================================================
     // ！！！！請務必換成您自己部署後的 Google Apps Script Web App URL
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbys6GY7aiH20dRxqo5Odgxy8KTW76-cjDfmje7GnnOUmmEUV3ToJFLPGEnxO-m9XxVEvg/exec';
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwl7eReG5NblmAKMc0XkYGNs2umCKS1V4uLn2eS60_axqzbSTWghB3xvRpNxXS4jQO3Hw/exec';
 
     // ===============================================================
     // DOM 元素獲取
