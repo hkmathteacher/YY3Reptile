@@ -1,21 +1,23 @@
 {
   "name": "圓玄三中爬蟲飼養日誌",
   "short_name": "爬蟲日誌",
+  "description": "一個用於記錄圓玄三中爬蟲飼養日常的 Web App。",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#007bff",
-  "description": "一個用於記錄爬蟲飼養日常的 Web App。",
+  "background_color": "#f5f7fa",
+  "theme_color": "#4a90e2",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
