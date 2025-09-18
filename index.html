@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圓玄三中爬蟲飼養日誌</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles and Tailwind Config -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+        .font-brand {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        /* Custom styles for date picker icon */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
+            filter: invert(0.5);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                        brand: ['Noto Sans TC', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <!-- Main Container -->
+    <div id="app-container" class="min-h-screen">
+
+        <!-- Login Screen -->
+        <div id="login-screen" class="flex items-center justify-center min-h-screen p-4">
+            <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
+                <h1 class="text-3xl font-bold text-center text-teal-600 font-brand">圓玄三中爬蟲飼養日誌</h1>
+                <p class="text-center text-slate-500 mt-2 mb-6">請登入以繼續</p>
+                <form id="login-form">
+                    <div class="mb-4">
+                        <label for="username" class="block text-sm font-medium text-slate-600 mb-1">使用者帳號</label>
+                        <input type="text" id="username" name="username" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="password" class="block text-sm font-medium text-slate-600 mb-1">密碼</label>
+                        <input type="password" id="password" name="password" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" required>
+                    </div>
+                    <button type="submit" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors duration-300">
+                        登入
+                    </button>
+                    <p id="login-error" class="text-red-500 text-sm mt-4 text-center"></p>
+                </form>
+            </div>
+        </div>
+
+        <!-- App Screen (Hidden by default) -->
+        <div id="app-screen" class="hidden">
+            <header class="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-10">
+                <h1 class="text-2xl font-bold text-teal-600 font-brand">飼養日誌儀表板</h1>
+                 <div>
+                    <span id="welcome-user" class="text-slate-600 mr-4"></span>
+                    <button id="logout-btn" class="bg-slate-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-slate-600 transition-colors">
+                        登出
+                    </button>
+                 </div>
+            </header>
+
+            <main class="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column: Log Form -->
+                <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg self-start">
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2">新增每日記錄</h2>
+                    <form id="log-form" class="space-y-4">
+                        <div>
+                            <label for="recordDate" class="block text-sm font-medium text-slate-600">記錄日期</label>
+                            <input type="date" id="recordDate" name="recordDate" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="recorder" class="block text-sm font-medium text-slate-600">記錄人</label>
+                                <select id="recorder" name="recorder" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" required>
+                                    <option value="" disabled selected>請選擇...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="reptileName" class="block text-sm font-medium text-slate-600">爬蟲名稱</label>
+                                <select id="reptileName" name="reptileName" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" required>
+                                     <option value="" disabled selected>請選擇...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="temperature" class="block text-sm font-medium text-slate-600">溫度 (°C)</label>
+                                <input type="number" step="0.1" id="temperature" name="temperature" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                            <div>
+                                <label for="humidity" class="block text-sm font-medium text-slate-600">濕度 (%)</label>
+                                <input type="number" step="1" id="humidity" name="humidity" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                        </div>
+                         <fieldset class="border rounded-lg p-3">
+                            <legend class="text-sm font-medium text-slate-600 px-1">餵食記錄</legend>
+                            <div class="grid grid-cols-3 gap-2 items-center">
+                                <div class="col-span-1">
+                                    <label for="fed" class="block text-xs font-medium text-slate-600">是否餵食</label>
+                                    <select id="fed" name="fed" class="mt-1 w-full px-2 py-2 border border-slate-300 rounded-lg text-sm">
+                                        <option value="否" selected>否</option>
+                                        <option value="是">是</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-1">
+                                    <label for="foodType" class="block text-xs font-medium text-slate-600">食物種類</label>
+                                    <input type="text" id="foodType" name="foodType" class="mt-1 w-full px-2 py-2 border border-slate-300 rounded-lg text-sm" disabled>
+                                </div>
+                                <div class="col-span-1">
+                                    <label for="foodAmount" class="block text-xs font-medium text-slate-600">數量</label>
+                                    <input type="number" id="foodAmount" name="foodAmount" min="0" class="mt-1 w-full px-2 py-2 border border-slate-300 rounded-lg text-sm" disabled>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <div>
+                           <label for="watered" class="block text-sm font-medium text-slate-600">飲水記錄</label>
+                           <select id="watered" name="watered" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
+                                <option value="否" selected>否</option>
+                                <option value="是">是 (已更換)</option>
+                           </select>
+                        </div>
+                        <div>
+                             <label for="notes" class="block text-sm font-medium text-slate-600">備註</label>
+                             <textarea id="notes" name="notes" rows="3" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" placeholder="記錄爬蟲的活動狀況、排便、蛻皮等..."></textarea>
+                        </div>
+                        <div>
+                             <label for="media-upload" class="block text-sm font-medium text-slate-600">上傳照片/影片</label>
+                             <input type="file" id="media-upload" name="media-upload" class="mt-1 w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100">
+                             <p class="text-xs text-slate-400 mt-1">檔案將依爬蟲名稱歸檔並重新命名</p>
+                        </div>
+                        <button type="submit" class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 transition-colors text-base">
+                            提交紀錄
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Right Column: Data Visualization & Logs -->
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-bold mb-4">數據統計：每隻爬蟲總餵食次數</h2>
+                        <div class="h-64">
+                             <canvas id="feeding-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-bold mb-4">最近的紀錄</h2>
+                        <div id="logs-container" class="max-h-[40rem] overflow-y-auto space-y-4 pr-2">
+                           <p id="no-logs-msg" class="text-slate-500">正在載入紀錄或暫無紀錄...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+        <!-- Loading Spinner Overlay -->
+        <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-teal-500"></div>
+            <p class="text-white ml-4 text-lg">處理中...</p>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="hidden fixed bottom-5 right-5 bg-green-600 text-white py-2 px-5 rounded-lg shadow-xl transition-opacity duration-300 z-50">
+             <p id="toast-message"></p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbysXpH6yO9aU38R07DTncy6yN3wvycNXfJRgPdyYPhFbM2aTu4Rx25FOZtx_noGKZydQQ/exec'; // !!! IMPORTANT: REPLACE THIS !!!
+
+        // --- DOM Elements ---
+        const loginScreen = document.getElementById('login-screen');
+        const appScreen = document.getElementById('app-screen');
+        const loginForm = document.getElementById('login-form');
+        const logForm = document.getElementById('log-form');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loginError = document.getElementById('login-error');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+        const logsContainer = document.getElementById('logs-container');
+        const noLogsMsg = document.getElementById('no-logs-msg');
+        const chartCanvas = document.getElementById('feeding-chart').getContext('2d');
+        const welcomeUserEl = document.getElementById('welcome-user');
+        
+        let feedingChart;
+        let currentUser = null;
+
+        // --- Functions ---
+        
+        function showToast(message, isError = false) {
+            toastMessage.innerText = message;
+            toast.className = toast.className.replace(/bg-\w+-\d+/, isError ? 'bg-red-600' : 'bg-green-600');
+            toast.classList.remove('hidden');
+            setTimeout(() => { toast.classList.add('hidden'); }, 3000);
+        }
+
+        function toggleLoader(show) {
+            loadingOverlay.classList.toggle('hidden', !show);
+        }
+
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    const encoded = reader.result.toString().replace(/^data:(.*,)?/, '');
+                    if ((encoded.length % 4) > 0) {
+                       encoded += '='.repeat(4 - (encoded.length % 4));
+                    }
+                    resolve({ base64: encoded, type: file.type, name: file.name });
+                };
+                reader.onerror = error => reject(error);
+            });
+        }
+        
+        async function initializeApp() {
+            toggleLoader(true);
+            try {
+                // Fetch initial data for dropdowns and all logs in parallel
+                const [initialDataRes, logsRes] = await Promise.all([
+                    fetch(GAS_WEB_APP_URL + '?action=getInitialData'),
+                    fetch(GAS_WEB_APP_URL + '?action=getLogs')
+                ]);
+
+                if (!initialDataRes.ok || !logsRes.ok) throw new Error('Failed to fetch initial data.');
+
+                const initialData = await initialDataRes.json();
+                const logsData = await logsRes.json();
+
+                if (initialData.success) {
+                    populateDropdowns(initialData.data);
+                }
+
+                if (logsData.success) {
+                    renderLogs(logsData.logs);
+                    renderChart(logsData.logs);
+                } else {
+                    renderChart([]); // Render empty chart if no logs
+                }
+                
+                noLogsMsg.classList.toggle('hidden', logsData.logs.length > 0);
+
+            } catch (error) {
+                console.error("Initialization error:", error);
+                showToast("無法載入初始資料", true);
+                noLogsMsg.textContent = "載入資料失敗。";
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        function populateDropdowns(data) {
+            const recorderSelect = document.getElementById('recorder');
+            const reptileSelect = document.getElementById('reptileName');
+            
+            data.recorders.forEach(name => {
+                const option = new Option(name, name);
+                recorderSelect.add(option);
+            });
+
+            data.reptiles.forEach(name => {
+                const option = new Option(name, name);
+                reptileSelect.add(option);
+            });
+        }
+        
+        function renderLogs(logs) {
+            logsContainer.innerHTML = '';
+            if (logs.length === 0) return;
+            
+            logs.slice().reverse().forEach(log => {
+                const logElement = document.createElement('div');
+                logElement.className = 'p-4 border rounded-lg bg-slate-50 text-sm';
+                
+                let mediaLink = log.mediaUrl ? `<a href="${log.mediaUrl}" target="_blank" class="text-teal-600 hover:underline">查看附件</a>` : '';
+                
+                logElement.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-bold text-slate-700 text-base">${log.reptileName} - ${log.recordDate}</p>
+                        <span class="text-xs text-slate-500">記錄人: ${log.recorder}</span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-slate-600">
+                        <span>🌡️ 溫度: ${log.temperature || 'N/A'}°C</span>
+                        <span>💧 濕度: ${log.humidity || 'N/A'}%</span>
+                        <span>🦗 餵食: ${log.fed}</span>
+                        <span>🥛 換水: ${log.watered}</span>
+                    </div>
+                    ${log.fed === '是' ? `<p class="text-slate-600 mt-2">食物: ${log.foodType || ''} (數量: ${log.foodAmount || 'N/A'})</p>` : ''}
+                    <p class="text-slate-500 mt-2"><strong class="font-medium text-slate-600">備註:</strong> ${log.notes || '無'}</p>
+                    ${mediaLink && `<div class="mt-2">${mediaLink}</div>`}
+                `;
+                logsContainer.appendChild(logElement);
+            });
+        }
+        
+        function renderChart(logs) {
+            const feedingCounts = logs.reduce((acc, log) => {
+                if (log.fed === '是') {
+                    acc[log.reptileName] = (acc[log.reptileName] || 0) + 1;
+                }
+                return acc;
+            }, {});
+
+            const reptileNames = Object.keys(feedingCounts);
+            const counts = Object.values(feedingCounts);
+            
+            const chartData = {
+                labels: reptileNames,
+                datasets: [{
+                    label: '總餵食次數',
+                    data: counts,
+                    backgroundColor: 'rgba(13, 148, 136, 0.6)',
+                    borderColor: 'rgba(13, 148, 136, 1)',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                }]
+            };
+
+            if (feedingChart) {
+                feedingChart.data = chartData;
+                feedingChart.update();
+            } else {
+                 feedingChart = new Chart(chartCanvas, {
+                    type: 'bar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                        plugins: { legend: { display: true } }
+                    }
+                });
+            }
+        }
+        
+        // --- Event Listeners & Initializers ---
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            toggleLoader(true);
+            loginError.textContent = '';
+            
+            if (GAS_WEB_APP_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL') {
+                showToast("請先在 JS 中設定您的 GAS Web App URL", true);
+                toggleLoader(false);
+                return;
+            }
+
+            const formData = new FormData(loginForm);
+            currentUser = formData.get('username'); // Store username
+            const data = { action: 'login', ...Object.fromEntries(formData.entries()) };
+
+            try {
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    loginScreen.classList.add('hidden');
+                    appScreen.classList.remove('hidden');
+                    welcomeUserEl.textContent = `歡迎, ${currentUser}`;
+                    await initializeApp();
+                } else {
+                    loginError.textContent = result.message || '登入失敗，請檢查帳號密碼。';
+                }
+            } catch (error) {
+                console.error("Login error:", error);
+                loginError.textContent = '發生錯誤，請稍後再試。';
+            } finally {
+                toggleLoader(false);
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            appScreen.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            document.getElementById('password').value = '';
+            loginError.textContent = '';
+            currentUser = null;
+        });
+
+        logForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            toggleLoader(true);
+
+            const formData = new FormData(logForm);
+            const data = { action: 'addLog', ...Object.fromEntries(formData.entries()) };
+            
+            const fileInput = document.getElementById('media-upload');
+            if (fileInput.files.length > 0) {
+                try {
+                    data.file = await getBase64(fileInput.files[0]);
+                } catch (error) {
+                     showToast("讀取檔案失敗", true);
+                     toggleLoader(false);
+                     return;
+                }
+            }
+            
+            try {
+                 const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast("紀錄已成功新增！");
+                    logForm.reset();
+                    document.getElementById('recordDate').value = new Date().toISOString().split('T')[0]; // Reset date to today
+                    document.getElementById('foodType').disabled = true;
+                    document.getElementById('foodAmount').disabled = true;
+                    await initializeApp(); // Refresh all data
+                } else {
+                    showToast(result.message || "新增紀錄失敗", true);
+                }
+            } catch (error) {
+                showToast("提交失敗，發生網路錯誤", true);
+            } finally {
+                toggleLoader(false);
+            }
+        });
+        
+        // Enable/disable food inputs based on 'fed' dropdown
+        document.getElementById('fed').addEventListener('change', (e) => {
+            const disabled = e.target.value === '否';
+            document.getElementById('foodType').disabled = disabled;
+            document.getElementById('foodAmount').disabled = disabled;
+            if (disabled) {
+                document.getElementById('foodType').value = '';
+                document.getElementById('foodAmount').value = '';
+            }
+        });
+
+        // Set default date to today
+        document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
+
+    </script>
+</body>
+</html>
+
