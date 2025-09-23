@@ -4,27 +4,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // !! 重要設定 !!
     // 請將此處的 URL 替換為您部署後的 Google Apps Script Web App URL
     // =================================================================
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyui8ai5x5WhfqPD6iWLVP44lhehlEJJGweFWjC4eI_ZdZNfJQGmaUuJsHFVWjxPnJMLg/exec'; // <-- !! 請務必替換成您自己的 URL !!
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxWRA89h_xbeQgAd9hHhDsr-J4m2zGX_z9DHcWm3U5T5Esh3qwAgKkOdv32R-KCpcSZCQ/exec'; // <-- !! 請務必替換成您自己的 URL !!
 
     // --- 全域狀態管理 ---
     const state = {
         currentPage: 'login-page',
         currentUser: null,
         currentReptile: { id: null, name: null, imageUrl: null },
-        reptiles: [],
-        foodOptions: [],
-        recorderOptions: [],
-        recordDates: new Set(),
-        currentCalendarDate: new Date(),
         language: 'zh'
     };
 
     // --- DOM 元素快取 ---
     const DOMElements = {
         html: document.documentElement,
+        body: document.body,
         loadingOverlay: document.getElementById('loading-overlay'),
         loginPage: document.getElementById('login-page'),
         mainContent: document.getElementById('main-content'),
+        globalControls: document.getElementById('global-controls'),
         pages: {
             home: document.getElementById('home-page'),
             form: document.getElementById('form-page'),
@@ -43,15 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // =================================================================
-    // === 核心功能函式 (Core Functions) - 無變動 ===
+    // === 核心功能函式 (Core Functions) ===
     // =================================================================
+
     const showLoading = () => DOMElements.loadingOverlay.classList.remove('hidden');
     const hideLoading = () => DOMElements.loadingOverlay.classList.add('hidden');
 
     async function gasApi(action, payload) {
         if (GAS_URL.includes('YOUR_DEPLOYMENT_ID')) {
              alert('請先在 JavaScript 程式碼中設定您的 Google Apps Script URL！');
-             return;
+             return null;
         }
         showLoading();
         try {
@@ -76,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const isHomePage = pageId === 'home-page';
         DOMElements.backButton.classList.toggle('hidden', isHomePage);
-        DOMElements.logoutButton.parentElement.classList.toggle('hidden', isHomePage);
         
         updateHeaderTitle();
         if (onShowCallback) onShowCallback();
@@ -86,14 +83,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatDate = (date) => date.toISOString().split('T')[0];
     
     // =================================================================
-    // === 主題與語言切換 (Theme & Language Toggle) - 無變動 ===
+    // === 主題與語言切換 (Theme & Language Toggle) ===
     // =================================================================
+
     function applyTheme(theme) {
-        if (theme === 'dark') {
-            DOMElements.html.classList.add('dark');
-        } else {
-            DOMElements.html.classList.remove('dark');
-        }
+        DOMElements.html.classList.toggle('dark', theme === 'dark');
         const isDark = (theme === 'dark');
         document.querySelectorAll('.theme-icon-light').forEach(icon => icon.classList.toggle('hidden', isDark));
         document.querySelectorAll('.theme-icon-dark').forEach(icon => icon.classList.toggle('hidden', !isDark));
@@ -111,7 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.textContent = state.language === 'zh' ? 'En' : '中';
         });
         updateLanguageUI();
-        if (state.currentPage === 'records-page') renderCalendar();
+        if (state.currentPage === 'records-page') {
+            const calContainer = document.getElementById('calendar-container');
+            if (calContainer) renderCalendar(calContainer);
+        }
     }
 
     function updateLanguageUI() {
@@ -121,7 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const value = lang[key];
             if (typeof value === 'function') return; 
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                if (el.placeholder !== undefined) el.placeholder = value || '';
+                if(el.type === 'submit' || el.type === 'button') el.value = value || '';
+                else el.placeholder = value || '';
             } else {
                 el.textContent = value || '';
             }
@@ -147,60 +145,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =================================================================
-    // === 頁面渲染與邏輯 (Page Rendering & Logic) - 無變動 ===
+    // === 頁面渲染與邏輯 (Page Rendering & Logic) ===
     // =================================================================
-    // 此處所有頁面渲染函式 (setupHomePage, renderReptileCards, setupFormPage 等) 保持不變
-    function setupLoginPage() {
+
+    async function handleLogin() {
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
-        const loginButton = document.getElementById('login-button');
         const loginError = document.getElementById('login-error');
 
-        loginButton.addEventListener('click', async () => {
-            loginError.textContent = '';
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-            if (!username || !password) return;
-            
-            const result = await gasApi('login', { username, password });
-            if (result && result.success) {
-                state.currentUser = result.username;
-                DOMElements.loginPage.style.display = 'none';
-                DOMElements.mainContent.style.display = 'block';
-                navigateTo('home-page', setupHomePage);
-            } else {
-                loginError.textContent = translations[state.language].loginFail;
-            }
-        });
+        loginError.textContent = '';
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+        if (!username || !password) return;
+        
+        const result = await gasApi('login', { username, password });
+        if (result && result.success) {
+            state.currentUser = result.username;
+            DOMElements.loginPage.style.display = 'none';
+            DOMElements.mainContent.style.display = 'block';
+            DOMElements.globalControls.classList.remove('hidden');
+            DOMElements.logoutButton.classList.remove('hidden');
+            navigateTo('home-page', setupHomePage);
+        } else {
+            loginError.textContent = translations[state.language].loginFail;
+        }
     }
-
+    
     async function setupHomePage() {
         const page = DOMElements.pages.home;
-        page.innerHTML = `<div id="reptile-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>`;
+        page.innerHTML = `<div id="reptile-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>`;
         const listContainer = document.getElementById('reptile-list');
         listContainer.innerHTML = `<p>${translations[state.language].fetchingData}</p>`;
         
         const reptiles = await gasApi('getReptiles');
         if (reptiles) {
-            state.reptiles = reptiles;
-            renderReptileCards(reptiles);
+            renderReptileCards(reptiles, listContainer);
         } else {
             listContainer.innerHTML = `<p>無法載入爬蟲列表。</p>`;
         }
     }
 
-    function renderReptileCards(reptiles) {
-        const listContainer = document.getElementById('reptile-list');
-        listContainer.innerHTML = '';
+    function renderReptileCards(reptiles, container) {
+        container.innerHTML = '';
         if (!reptiles || reptiles.length === 0) {
-            listContainer.innerHTML = `<p>目前沒有爬蟲資料。</p>`;
+            container.innerHTML = `<p>目前沒有爬蟲資料。</p>`;
             return;
         }
         reptiles.forEach(reptile => {
             const card = document.createElement('div');
-            card.className = "bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden shadow-lg transform hover:scale-105 transition-transform duration-300";
+            card.className = "bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg transform hover:scale-105 transition-transform duration-300";
             card.innerHTML = `
-                <img class="w-full h-48 object-cover" src="${reptile.ImageURL}" alt="${reptile.Name}" onerror="this.src='https://placehold.co/600x400/333/FFF?text=${reptile.Name}'">
+                <img class="w-full h-48 object-cover" src="${reptile.ImageURL}" alt="${reptile.Name}" onerror="this.src='https://placehold.co/600x400/555/FFF?text=${reptile.Name}'">
                 <div class="p-4">
                     <h2 class="text-2xl font-bold mb-4">${reptile.Name}</h2>
                     <div class="grid grid-cols-3 gap-2 text-center">
@@ -209,182 +204,129 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button data-action="camera" data-id="${reptile.ID}" data-name="${reptile.Name}" class="p-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition flex flex-col items-center"><svg class="w-6 h-6 mb-1 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg><span class="text-xs font-semibold pointer-events-none" data-lang-key="camera"></span></button>
                     </div>
                 </div>`;
-            listContainer.appendChild(card);
+            container.appendChild(card);
         });
         updateLanguageUI();
     }
-
+    
     async function setupFormPage() {
-        const T = translations[state.language];
         const page = DOMElements.pages.form;
-        page.innerHTML = `
-            <form id="feeding-form" class="space-y-6">
-                <div>
-                    <label for="form-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-lang-key="formDate"></label>
-                    <input type="date" id="form-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                </div>
-                <div>
-                    <label for="form-recorder" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-lang-key="formRecorder"></label>
-                    <select id="form-recorder" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></select>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="form-temp" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-lang-key="formTemp"></label>
-                        <input type="number" step="0.1" id="form-temp" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                    </div>
-                    <div>
-                        <label for="form-humidity" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-lang-key="formHumidity"></label>
-                        <input type="number" step="1" id="form-humidity" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                    </div>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300" data-lang-key="formFed"></span>
-                    <label for="form-fed-toggle" class="inline-flex relative items-center cursor-pointer">
-                        <input type="checkbox" id="form-fed-toggle" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-emerald-600"></div>
-                    </label>
-                </div>
-                <div id="food-details" class="space-y-4 hidden pt-4 border-t border-gray-200 dark:border-gray-600">
-                    <div>
-                        <label for="form-food-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-lang-key="formFoodType"></label>
-                        <select id="form-food-type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></select>
-                    </div>
-                    <div>
-                        <label for="form-food-quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-lang-key="formFoodQty"></label>
-                        <input type="number" step="1" id="form-food-quantity" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                    </div>
-                </div>
-                <div class="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-600">
-                    ${['Water', 'Poop', 'Substrate'].map(item => `
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300" data-lang-key="form${item}"></span>
-                        <input type="checkbox" id="form-${item.toLowerCase()}-changed" class="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
-                    </div>
-                    `).join('')}
-                </div>
-                <div>
-                    <label for="form-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-lang-key="formNotes"></label>
-                    <textarea id="form-notes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" placeholder="${T.placeholderNotes}"></textarea>
-                </div>
-                <button type="submit" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-lg hover:bg-emerald-600 transition-transform transform active:scale-95" data-lang-key="submit"></button>
-            </form>
+        page.innerHTML = `<form id="feeding-form" class="space-y-6 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"></form>`;
+        const form = page.querySelector('#feeding-form');
+
+        form.innerHTML = `
+            <div>
+                <label for="form-date" class="block text-sm font-medium" data-lang-key="formDate"></label>
+                <input type="date" id="form-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+            </div>
+            <div>
+                <label for="form-recorder" class="block text-sm font-medium" data-lang-key="formRecorder"></label>
+                <select id="form-recorder" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label for="form-temp" class="block text-sm font-medium" data-lang-key="formTemp"></label><input type="number" step="0.1" id="form-temp" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></div>
+                <div><label for="form-humidity" class="block text-sm font-medium" data-lang-key="formHumidity"></label><input type="number" step="1" id="form-humidity" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></div>
+            </div>
+            <div class="flex items-center justify-between"><span class="font-medium" data-lang-key="formFed"></span><label class="inline-flex relative items-center cursor-pointer"><input type="checkbox" id="form-fed-toggle" class="sr-only peer"><div class="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:bg-emerald-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div></label></div>
+            <div id="food-details" class="space-y-4 hidden pt-4 border-t dark:border-gray-600">
+                 <div><label for="form-food-type" class="block text-sm font-medium" data-lang-key="formFoodType"></label><select id="form-food-type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></select></div>
+                 <div><label for="form-food-quantity" class="block text-sm font-medium" data-lang-key="formFoodQty"></label><input type="number" step="1" id="form-food-quantity" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></div>
+            </div>
+            <div class="space-y-3 pt-4 border-t dark:border-gray-600">
+                ${['Water', 'Poop', 'Substrate'].map(item => `<div class="flex items-center justify-between"><span data-lang-key="form${item}"></span><input type="checkbox" id="form-${item.toLowerCase()}-changed" class="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"></div>`).join('')}
+            </div>
+            <div><label for="form-notes" class="block text-sm font-medium" data-lang-key="formNotes"></label><textarea id="form-notes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm" data-lang-key="placeholderNotes"></textarea></div>
+            <button type="submit" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-lg hover:bg-emerald-600 transition-transform transform active:scale-95" data-lang-key="submit"></button>
         `;
         
         document.getElementById('form-date').value = formatDate(new Date());
 
-        const fedToggle = document.getElementById('form-fed-toggle');
-        const foodDetails = document.getElementById('food-details');
-        fedToggle.addEventListener('change', () => {
-            foodDetails.classList.toggle('hidden', !fedToggle.checked);
-        });
-
         Promise.all([gasApi('getFoodOptions'), gasApi('getRecorders')]).then(([foodOptions, recorderOptions]) => {
             const foodSelect = document.getElementById('form-food-type');
             const recorderSelect = document.getElementById('form-recorder');
-            
-            if (foodOptions) {
-                state.foodOptions = foodOptions;
-                foodSelect.innerHTML = foodOptions.map(f => `<option value="${f.FoodName}">${f.FoodName} (${f.Unit})</option>`).join('');
-            }
-            if (recorderOptions) {
-                state.recorderOptions = recorderOptions;
-                recorderSelect.innerHTML = recorderOptions.map(r => `<option value="${r.Name}" ${r.Name === state.currentUser ? 'selected' : ''}>${r.Name}</option>`).join('');
-            }
+            if (foodOptions && foodSelect) foodSelect.innerHTML = foodOptions.map(f => `<option value="${f.FoodName}">${f.FoodName} (${f.Unit})</option>`).join('');
+            if (recorderOptions && recorderSelect) recorderSelect.innerHTML = recorderOptions.map(r => `<option value="${r.Name}" ${r.Name === state.currentUser ? 'selected' : ''}>${r.Name}</option>`).join('');
         });
         
         updateLanguageUI();
     }
 
-    async function setupUploadPage() {
+    async function handleFormSubmit() {
         const T = translations[state.language];
+        const isFed = document.getElementById('form-fed-toggle').checked;
+        const formData = {
+            reptileName: state.currentReptile.name,
+            date: document.getElementById('form-date').value,
+            recorder: document.getElementById('form-recorder').value,
+            temperature: document.getElementById('form-temp').value,
+            humidity: document.getElementById('form-humidity').value,
+            fed: isFed,
+            foodType: isFed ? document.getElementById('form-food-type').value : '',
+            foodQuantity: isFed ? document.getElementById('form-food-quantity').value : '',
+            waterChanged: document.getElementById('form-water-changed').checked,
+            cleanedPoop: document.getElementById('form-poop-changed').checked,
+            substrateChanged: document.getElementById('form-substrate-changed').checked,
+            notes: document.getElementById('form-notes').value,
+        };
+        
+        const result = await gasApi('submitLog', formData);
+        if (result && result.success) {
+            alert(T.submitSuccess);
+            navigateTo('home-page', setupHomePage);
+        }
+    }
+
+    async function setupUploadPage() {
         const page = DOMElements.pages.upload;
         page.innerHTML = `
-            <div class="flex flex-col items-center space-y-4">
+            <div class="flex flex-col items-center space-y-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
                 <label for="file-upload" class="cursor-pointer w-full p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                     <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                     <p class="mt-2 font-semibold" data-lang-key="uploadClick"></p>
                     <p class="text-xs text-gray-500" data-lang-key="uploadFileType"></p>
                 </label>
                 <input id="file-upload" type="file" class="hidden" accept="image/*,video/*">
-                
-                <div id="file-preview-container" class="w-full hidden">
-                    <p class="font-semibold text-sm mb-2">預覽:</p>
-                    <img id="image-preview" class="max-w-full rounded-lg mx-auto">
-                    <p id="file-name" class="text-center text-sm mt-2 text-gray-500"></p>
-                </div>
-                
+                <div id="file-preview-container" class="w-full hidden"><p class="font-semibold text-sm mb-2">預覽:</p><img id="image-preview" class="max-w-full rounded-lg mx-auto"><p id="file-name" class="text-center text-sm mt-2 text-gray-500"></p></div>
                 <button id="upload-button" class="w-full bg-amber-500 text-white font-bold py-3 rounded-lg hover:bg-amber-600 transition-transform transform active:scale-95 hidden" data-lang-key="upload"></button>
             </div>
         `;
-
-        const fileInput = document.getElementById('file-upload');
-        const previewContainer = document.getElementById('file-preview-container');
-        const imagePreview = document.getElementById('image-preview');
-        const fileNameEl = document.getElementById('file-name');
-        const uploadButton = document.getElementById('upload-button');
-
-        let fileToUpload = null;
-
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            fileToUpload = file;
-            fileNameEl.textContent = file.name;
-            
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    imagePreview.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                imagePreview.src = 'https://placehold.co/600x400/333/FFF?text=Video';
-            }
-
-            previewContainer.classList.remove('hidden');
-            uploadButton.classList.remove('hidden');
-        });
-
-        uploadButton.addEventListener('click', async () => {
-            if (!fileToUpload) return;
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const base64Data = event.target.result.split(',')[1];
-                const payload = {
-                    reptileName: state.currentReptile.name,
-                    recorder: state.currentUser,
-                    fileName: fileToUpload.name,
-                    mimeType: fileToUpload.type,
-                    base64Data: base64Data
-                };
-                const result = await gasApi('uploadFile', payload);
-                if (result && result.success) {
-                    alert(T.uploadSuccess);
-                    navigateTo('home-page', setupHomePage);
-                } else {
-                    alert(T.uploadFail);
-                }
-            };
-            reader.readAsDataURL(fileToUpload);
-        });
-        
         updateLanguageUI();
+    }
+    
+    async function handleFileUpload(file) {
+        if (!file) return;
+        const T = translations[state.language];
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const base64Data = event.target.result.split(',')[1];
+            const payload = {
+                reptileName: state.currentReptile.name,
+                recorder: state.currentUser,
+                fileName: file.name,
+                mimeType: file.type,
+                base64Data: base64Data
+            };
+            const result = await gasApi('uploadFile', payload);
+            if (result && result.success) {
+                alert(T.uploadSuccess);
+                navigateTo('home-page', setupHomePage);
+            } else {
+                alert(T.uploadFail);
+            }
+        };
+        reader.readAsDataURL(file);
     }
 
     async function setupRecordsPage() {
         const page = DOMElements.pages.records;
         page.innerHTML = `
-            <div class="text-center mb-6">
-                <img id="record-reptile-img" class="w-32 h-32 rounded-full mx-auto object-cover shadow-lg border-4 border-white dark:border-gray-800" src="${state.currentReptile.imageUrl}" onerror="this.src='https://placehold.co/200x200/333/FFF?text=${state.currentReptile.name}'">
+            <div class="space-y-6">
+                <div class="text-center"><img class="w-32 h-32 rounded-full mx-auto object-cover shadow-lg border-4 border-white dark:border-gray-800" src="${state.currentReptile.imageUrl}" onerror="this.src='https://placehold.co/200x200/555/FFF?text=${state.currentReptile.name}'"></div>
+                <div id="latest-status" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"></div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"></div></div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"></div></div>
             </div>
-            <div id="latest-status" class="mb-8 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg"></div>
-            <h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3>
-            <div id="calendar-container" class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg"></div>
-            <h3 class="text-xl font-bold mt-8 mb-4 text-center" data-lang-key="recordDailyDetail"></h3>
-            <div id="daily-details" class="space-y-3 min-h-[5rem]"></div>
         `;
-
         updateLanguageUI();
         
         const [status, recordDates] = await Promise.all([
@@ -392,82 +334,58 @@ document.addEventListener('DOMContentLoaded', () => {
             gasApi('getRecordDates', { reptileName: state.currentReptile.name })
         ]);
         
-        if (status) renderLatestStatus(status);
-        if (recordDates) state.recordDates = new Set(recordDates);
+        const statusContainer = document.getElementById('latest-status');
+        const calContainer = document.getElementById('calendar-container');
 
-        renderCalendar();
+        if (status && statusContainer) renderLatestStatus(status, statusContainer);
+        if (recordDates && calContainer) {
+            state.recordDates = new Set(recordDates);
+            state.currentCalendarDate = new Date();
+            renderCalendar(calContainer);
+        }
     }
     
-    function renderLatestStatus(status) {
+    function renderLatestStatus(status, container) {
         const T = translations[state.language];
-        const container = document.getElementById('latest-status');
         const items = [
-            { key: 'lastFed', label: T.lastFed, value: status.lastFed, detail: status.lastFedDetail },
-            { key: 'lastWater', label: T.lastWater, value: status.lastWater },
-            { key: 'lastPoop', label: T.lastPoop, value: status.lastPoop },
-            { key: 'lastSubstrate', label: T.lastSubstrate, value: status.lastSubstrate },
+            { label: T.lastFed, value: status.lastFed, detail: status.lastFedDetail },
+            { label: T.lastWater, value: status.lastWater },
+            { label: T.lastPoop, value: status.lastPoop },
+            { label: T.lastSubstrate, value: status.lastSubstrate },
         ];
         container.innerHTML = `
             <h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordStatus"></h3>
             <div class="grid grid-cols-2 gap-4">
-            ${items.map(item => `
-                <div class="p-3 bg-white dark:bg-gray-600 rounded-md shadow-sm">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">${item.label}</p>
-                    <p class="font-bold text-lg">${item.value || T.none}</p>
-                    ${item.detail ? `<p class="text-xs text-gray-400">${item.detail}</p>` : ''}
-                </div>
-            `).join('')}
+            ${items.map(item => `<div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-md"><p class="text-sm text-gray-500 dark:text-gray-400">${item.label}</p><p class="font-bold text-lg">${item.value || T.none}</p>${item.detail ? `<p class="text-xs text-gray-400">${item.detail}</p>` : ''}</div>`).join('')}
             </div>
         `;
         updateLanguageUI();
     }
 
-    function renderCalendar() {
+    function renderCalendar(container) {
         const T = translations[state.language];
-        const container = document.getElementById('calendar-container');
         const date = state.currentCalendarDate;
         const year = date.getFullYear();
         const month = date.getMonth();
-
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        let calendarHTML = `
-            <div class="flex justify-between items-center mb-2">
-                <button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">&lt;</button>
-                <h4 class="font-bold">${year} / ${month + 1}</h4>
-                <button id="next-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">&gt;</button>
-            </div>
-            <div class="grid grid-cols-7 text-center text-xs font-bold text-gray-500 dark:text-gray-400">
-                ${T.weekdays.map(day => `<div>${day}</div>`).join('')}
-            </div>
-            <div class="grid grid-cols-7 text-center mt-2">
+        container.innerHTML = `
+            <div class="flex justify-between items-center mb-2"><button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">&lt;</button><h4 class="font-bold">${year} / ${month + 1}</h4><button id="next-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">&gt;</button></div>
+            <div class="grid grid-cols-7 text-center text-xs font-bold text-gray-500 dark:text-gray-400">${T.weekdays.map(day => `<div>${day}</div>`).join('')}</div>
+            <div class="grid grid-cols-7 text-center mt-2">${Array(firstDay).fill('<div></div>').join('')}${Array.from({length: daysInMonth}, (_, i) => {
+                const day = i + 1;
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const hasRecord = state.recordDates.has(dateStr);
+                return `<div class="p-1"><button data-date="${dateStr}" class="day-cell w-8 h-8 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-800 transition relative">${day}${hasRecord ? '<span class="calendar-dot"></span>' : ''}</button></div>`;
+            }).join('')}</div>
         `;
-        
-        for (let i = 0; i < firstDay; i++) {
-            calendarHTML += `<div></div>`;
-        }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const hasRecord = state.recordDates.has(currentDateStr);
-            calendarHTML += `
-                <div class="p-1">
-                    <button data-date="${currentDateStr}" class="day-cell w-8 h-8 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-800 transition relative">
-                        ${day}
-                        ${hasRecord ? '<span class="calendar-dot"></span>' : ''}
-                    </button>
-                </div>
-            `;
-        }
-        
-        calendarHTML += `</div>`;
-        container.innerHTML = calendarHTML;
     }
     
     async function renderDailyDetails(dateStr) {
         const T = translations[state.language];
         const container = document.getElementById('daily-details');
+        if (!container) return;
         container.innerHTML = `<p>${T.fetchingData}</p>`;
         
         const records = await gasApi('getRecordsByDate', { reptileName: state.currentReptile.name, date: dateStr });
@@ -477,93 +395,90 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        container.innerHTML = records.map(rec => `
-            <div class="p-3 bg-white dark:bg-gray-600 rounded-lg shadow-sm">
-                <p class="text-xs text-gray-400">${rec.Recorder} @ ${rec.Timestamp.split(' ')[1]}</p>
+        container.innerHTML = records.map(rec => {
+            const timestamp = rec.Timestamp ? new Date(rec.Timestamp).toLocaleTimeString() : '';
+            return `
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-xs text-gray-400">${rec.Recorder} @ ${timestamp}</p>
                 <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-sm">
                     ${rec.Fed ? `<p><strong>${T.formFoodType}:</strong> ${rec.FoodType} (${rec.FoodQuantity})</p>` : ''}
-                    <p><strong>${T.formTemp}:</strong> ${rec.Temperature}°C</p>
-                    <p><strong>${T.formHumidity}:</strong> ${rec.Humidity}%</p>
-                    <p><strong>${T.formWater}:</strong> ${rec.WaterChanged ? '✔' : '✘'}</p>
-                    <p><strong>${T.formPoop}:</strong> ${rec.CleanedPoop ? '✔' : '✘'}</p>
+                    <p><strong>${T.formTemp}:</strong> ${rec.Temperature}°C</p><p><strong>${T.formHumidity}:</strong> ${rec.Humidity}%</p>
+                    <p><strong>${T.formWater}:</strong> ${rec.WaterChanged ? '✔' : '✘'}</p><p><strong>${T.formPoop}:</strong> ${rec.CleanedPoop ? '✔' : '✘'}</p>
                     <p><strong>${T.formSubstrate}:</strong> ${rec.SubstrateChanged ? '✔' : '✘'}</p>
                 </div>
                 ${rec.Notes ? `<p class="text-sm mt-2 pt-2 border-t border-gray-200 dark:border-gray-500">${rec.Notes}</p>` : ''}
             </div>
-        `).join('');
+        `}).join('');
     }
 
     // =================================================================
-    // === 事件監聽器 (Event Listeners) ===
+    // === 【核心修正】事件委派 (Event Delegation) ===
     // =================================================================
-    
-    function setupEventListeners() {
-        document.querySelectorAll('.theme-toggle').forEach(btn => {
-            btn.addEventListener('click', handleThemeToggle);
-        });
-        document.querySelectorAll('.lang-toggle').forEach(btn => {
-            btn.addEventListener('click', handleLangToggle);
-        });
-
-        DOMElements.backButton.addEventListener('click', () => navigateTo('home-page', setupHomePage));
-        DOMElements.logoutButton.addEventListener('click', () => window.location.reload());
-
-        DOMElements.pages.home.addEventListener('click', e => {
-            const button = e.target.closest('button[data-action]');
-            if (!button) return;
+    function setupGlobalEventListener() {
+        DOMElements.body.addEventListener('click', e => {
+            const target = e.target;
             
-            const { action, id, name, image } = button.dataset;
-            state.currentReptile = { id, name, imageUrl: image };
-            
-            if (action === 'feed') navigateTo('form-page', setupFormPage);
-            if (action === 'camera') navigateTo('upload-page', setupUploadPage);
-            if (action === 'records') navigateTo('records-page', setupRecordsPage);
-        });
-        
-        DOMElements.pages.form.addEventListener('submit', async e => {
-            if (e.target.id !== 'feeding-form') return;
-            e.preventDefault();
-            const T = translations[state.language];
-            const isFed = document.getElementById('form-fed-toggle').checked;
-            const formData = {
-                reptileName: state.currentReptile.name,
-                date: document.getElementById('form-date').value,
-                recorder: document.getElementById('form-recorder').value,
-                temperature: document.getElementById('form-temp').value,
-                humidity: document.getElementById('form-humidity').value,
-                fed: isFed,
-                foodType: isFed ? document.getElementById('form-food-type').value : '',
-                foodQuantity: isFed ? document.getElementById('form-food-quantity').value : '',
-                waterChanged: document.getElementById('form-water-changed').checked,
-                cleanedPoop: document.getElementById('form-poop-changed').checked,
-                substrateChanged: document.getElementById('form-substrate-changed').checked,
-                notes: document.getElementById('form-notes').value,
-            };
-            
-            console.log("將要提交的記錄資料 (Submitting log data):", formData);
+            // --- 全域按鈕 ---
+            if (target.closest('.theme-toggle')) handleThemeToggle();
+            if (target.closest('.lang-toggle')) handleLangToggle();
+            if (target.closest('#back-button')) navigateTo('home-page', setupHomePage);
+            if (target.closest('#logout-button')) window.location.reload();
+            if (target.closest('#login-button')) handleLogin();
 
-            const result = await gasApi('submitLog', formData);
-            if (result && result.success) {
-                alert(T.submitSuccess);
-                navigateTo('home-page', setupHomePage);
+            // --- 主頁面按鈕 ---
+            const homeButton = target.closest('#home-page button[data-action]');
+            if (homeButton) {
+                const { action, id, name, image } = homeButton.dataset;
+                state.currentReptile = { id, name, imageUrl: image };
+                if (action === 'feed') navigateTo('form-page', setupFormPage);
+                if (action === 'camera') navigateTo('upload-page', setupUploadPage);
+                if (action === 'records') navigateTo('records-page', setupRecordsPage);
+            }
+
+            // --- 上傳頁面按鈕 ---
+            if (target.closest('#upload-button')) {
+                const fileInput = document.getElementById('file-upload');
+                if (fileInput && fileInput.files[0]) handleFileUpload(fileInput.files[0]);
+            }
+
+            // --- 記錄頁面日曆按鈕 ---
+            const calendarButton = target.closest('#records-page button');
+            if(calendarButton) {
+                const calContainer = document.getElementById('calendar-container');
+                if (calendarButton.id === 'prev-month') {
+                    state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() - 1);
+                    if(calContainer) renderCalendar(calContainer);
+                } else if (calendarButton.id === 'next-month') {
+                    state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() + 1);
+                    if(calContainer) renderCalendar(calContainer);
+                } else if (calendarButton.classList.contains('day-cell')) {
+                    const dateStr = calendarButton.dataset.date;
+                    document.querySelectorAll('.day-cell.bg-emerald-500').forEach(el => el.classList.remove('bg-emerald-500', 'text-white'));
+                    calendarButton.classList.add('bg-emerald-500', 'text-white');
+                    renderDailyDetails(dateStr);
+                }
             }
         });
 
-        DOMElements.pages.records.addEventListener('click', e => {
-            const button = e.target.closest('button');
-            if (!button) return;
-            
-            if (button.id === 'prev-month') {
-                state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() - 1);
-                renderCalendar();
-            } else if (button.id === 'next-month') {
-                state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() + 1);
-                renderCalendar();
-            } else if (button.classList.contains('day-cell')) {
-                const dateStr = button.dataset.date;
-                document.querySelectorAll('.day-cell.bg-emerald-500').forEach(el => el.classList.remove('bg-emerald-500', 'text-white'));
-                button.classList.add('bg-emerald-500', 'text-white');
-                renderDailyDetails(dateStr);
+        DOMElements.body.addEventListener('submit', e => {
+            if (e.target.id === 'feeding-form') {
+                e.preventDefault();
+                handleFormSubmit();
+            }
+        });
+
+        DOMElements.body.addEventListener('change', e => {
+            if (e.target.id === 'form-fed-toggle') {
+                document.getElementById('food-details').classList.toggle('hidden', !e.target.checked);
+            }
+            if (e.target.id === 'file-upload') {
+                const file = e.target.files[0];
+                if (!file) return;
+                document.getElementById('file-name').textContent = file.name;
+                const preview = document.getElementById('image-preview');
+                preview.src = file.type.startsWith('image/') ? URL.createObjectURL(file) : 'https://placehold.co/600x400/555/FFF?text=Video';
+                document.getElementById('file-preview-container').classList.remove('hidden');
+                document.getElementById('upload-button').classList.remove('hidden');
             }
         });
     }
@@ -573,10 +488,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     function init() {
         initTheme();
-        DOMElements.loginPage.style.display = 'flex';
-        setupLoginPage();
-        setupEventListeners();
         updateLanguageUI();
+        setupGlobalEventListener();
     }
 
     init();
