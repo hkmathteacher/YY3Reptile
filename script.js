@@ -4,7 +4,7 @@
     // !! 重要設定 !!
     // 請將此處的 URL 替換為您部署後的 Google Apps Script Web App URL
     // =================================================================
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwP7e6JBeMu6KbiFyWo3m_Mn4sovcU1B3vhAeTokixTGjwjyyemSsQEuGbLSFmqZQ5S/exec'; // <-- !! 請務必替換成您自己的 URL !!
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyui8ai5x5WhfqPD6iWLVP44lhehlEJJGweFWjC4eI_ZdZNfJQGmaUuJsHFVWjxPnJMLg/exec'; // <-- !! 請務必替換成您自己的 URL !!
 
     // --- 全域狀態管理 ---
     const state = {
