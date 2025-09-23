@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // !! 重要設定 !!
     // 請將此處的 URL 替換為您部署後的 Google Apps Script Web App URL
     // =================================================================
-    const GAS_URL = 'YOUR_GAS_URL_HERE'; // <-- !! 請務必替換成您自己的 URL !!
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyB-NySWSBI_yN41DuXbNDb0rfY97VBb-nrNuG3taBksaxKlRgndUWvg77jgLT5FJ8jzA/exec'; // <-- !! 請務必替換成您自己的 URL !!
 
     // --- 全域狀態管理 ---
     const state = {
