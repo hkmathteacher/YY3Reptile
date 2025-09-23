@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = "rounded-xl overflow-hidden shadow-lg transform hover:scale-105 transition-transform duration-300";
             card.style.backgroundColor = 'var(--bg-card)';
             card.innerHTML = `
-                <img class="w-full h-48 object-cover" src="${reptile.ImageURL}" alt="${reptile.Name}" onerror="this.src='https://placehold.co/600x400/555/FFF?text=${reptile.Name}'">
+                <img class="w-full h-48 object-cover" src="${reptile.ImageURL}" alt="${reptile.Name}" onerror="this.src='https.placehold.co/600x400/555/FFF?text=${reptile.Name}'">
                 <div class="p-4">
                     <h2 class="text-2xl font-bold mb-4" style="color: var(--text-header);">${reptile.Name}</h2>
                     <div class="grid grid-cols-3 gap-2 text-center">
@@ -216,21 +216,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = page.querySelector('#feeding-form');
 
         form.innerHTML = `
-            <div><label for="form-date" class="block text-sm font-medium" data-lang-key="formDate"></label><input type="date" id="form-date" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
-            <div><label for="form-recorder" class="block text-sm font-medium" data-lang-key="formRecorder"></label><select id="form-recorder" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></select></div>
+            <div><label for="form-date" class="block text-sm font-medium" data-lang-key="formDate"></label><input type="date" id="form-date" style="background-color: var(--bg-input); border-color: var(--border-color); color: var(--text-main);" class="mt-1 block w-full rounded-md border shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
+            <div><label for="form-recorder" class="block text-sm font-medium" data-lang-key="formRecorder"></label><select id="form-recorder" style="background-color: var(--bg-input); border-color: var(--border-color); color: var(--text-main);" class="mt-1 block w-full rounded-md border shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></select></div>
             <div class="grid grid-cols-2 gap-4">
-                <div><label for="form-temp" class="block text-sm font-medium" data-lang-key="formTemp"></label><input type="number" step="0.1" id="form-temp" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm"></div>
-                <div><label for="form-humidity" class="block text-sm font-medium" data-lang-key="formHumidity"></label><input type="number" step="1" id="form-humidity" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm"></div>
+                <div><label for="form-temp" class="block text-sm font-medium" data-lang-key="formTemp"></label><input type="number" step="0.1" id="form-temp" style="background-color: var(--bg-input); border-color: var(--border-color); color: var(--text-main);" class="mt-1 block w-full rounded-md border shadow-sm"></div>
+                <div><label for="form-humidity" class="block text-sm font-medium" data-lang-key="formHumidity"></label><input type="number" step="1" id="form-humidity" style="background-color: var(--bg-input); border-color: var(--border-color); color: var(--text-main);" class="mt-1 block w-full rounded-md border shadow-sm"></div>
             </div>
             <div class="flex items-center justify-between"><span class="font-medium" data-lang-key="formFed"></span><label class="inline-flex relative items-center cursor-pointer"><input type="checkbox" id="form-fed-toggle" class="sr-only peer"><div class="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:bg-emerald-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div></label></div>
             <div id="food-details" class="space-y-4 hidden pt-4" style="border-top: 1px solid var(--border-color);">
-                 <div><label for="form-food-type" class="block text-sm font-medium" data-lang-key="formFoodType"></label><select id="form-food-type" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm"></select></div>
-                 <div><label for="form-food-quantity" class="block text-sm font-medium" data-lang-key="formFoodQty"></label><input type="number" step="1" id="form-food-quantity" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm"></div>
+                 <div><label for="form-food-type" class="block text-sm font-medium" data-lang-key="formFoodType"></label><select id="form-food-type" style="background-color: var(--bg-input); border-color: var(--border-color); color: var(--text-main);" class="mt-1 block w-full rounded-md border shadow-sm"></select></div>
+                 <div><label for="form-food-quantity" class="block text-sm font-medium" data-lang-key="formFoodQty"></label><input type="number" step="1" id="form-food-quantity" style="background-color: var(--bg-input); border-color: var(--border-color); color: var(--text-main);" class="mt-1 block w-full rounded-md border shadow-sm"></div>
             </div>
             <div class="space-y-3 pt-4" style="border-top: 1px solid var(--border-color);">
                 ${['Water', 'Poop', 'Substrate'].map(item => `<div class="flex items-center justify-between"><span data-lang-key="form${item}"></span><input type="checkbox" id="form-${item.toLowerCase()}-changed" class="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"></div>`).join('')}
             </div>
-            <div><label for="form-notes" class="block text-sm font-medium" data-lang-key="formNotes"></label><textarea id="form-notes" rows="3" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm" data-lang-key="placeholderNotes"></textarea></div>
+            <div><label for="form-notes" class="block text-sm font-medium" data-lang-key="formNotes"></label><textarea id="form-notes" rows="3" style="background-color: var(--bg-input); border-color: var(--border-color); color: var(--text-main);" class="mt-1 block w-full rounded-md border shadow-sm" data-lang-key="placeholderNotes"></textarea></div>
             <button type="submit" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-lg hover:bg-emerald-600 transition-transform transform active:scale-95" data-lang-key="submit"></button>
         `;
         
@@ -314,30 +314,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function setupRecordsPage() {
         const page = DOMElements.pages.records;
+        // 1. Set the basic structure
         page.innerHTML = `
             <div class="space-y-6">
-                <div class="text-center"><img class="w-32 h-32 rounded-full mx-auto object-cover shadow-lg border-4" style="border-color: var(--bg-card);" src="${state.currentReptile.imageUrl}" onerror="this.src='https://placehold.co/200x200/555/FFF?text=${state.currentReptile.name}'"></div>
+                <div class="text-center"><img class="w-32 h-32 rounded-full mx-auto object-cover shadow-lg border-4" style="border-color: var(--bg-card);" src="${state.currentReptile.imageUrl}" onerror="this.src='https.placehold.co/200x200/555/FFF?text=${state.currentReptile.name}'"></div>
                 <div id="latest-status" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"></div>
-                <div class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"></div></div>
-                <div class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"></div></div>
+                <div id="calendar-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"></div></div>
+                <div id="details-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"></div></div>
             </div>
         `;
         
+        // 2. Immediately update the language for static titles
+        updateLanguageUI(page);
+
+        // 3. Get the containers
+        const statusContainer = document.getElementById('latest-status');
+        const calContainer = document.getElementById('calendar-container');
+        const detailsContainer = document.getElementById('daily-details');
+        const calendarCard = document.getElementById('calendar-card');
+        const detailsCard = document.getElementById('details-card');
+
+        // 4. Show loading state in containers
+        statusContainer.innerHTML = `<p class="text-center">${translations[state.language].fetchingData}</p>`;
+        calendarCard.classList.add('hidden'); // Hide cards until data is ready
+        detailsCard.classList.add('hidden');
+
+        // 5. Fetch all data
         const [status, recordDates] = await Promise.all([
             gasApi('getLatestStatus', { reptileName: state.currentReptile.name }),
             gasApi('getRecordDates', { reptileName: state.currentReptile.name })
         ]);
         
-        const statusContainer = document.getElementById('latest-status');
-        const calContainer = document.getElementById('calendar-container');
+        // 6. Render content based on fetched data
+        if (status && statusContainer) {
+            renderLatestStatus(status, statusContainer);
+        } else if (statusContainer) {
+            statusContainer.innerHTML = `<p class="text-center">無法載入最新狀態。</p>`;
+        }
 
-        if (status && statusContainer) renderLatestStatus(status, statusContainer);
         if (recordDates && calContainer) {
+            calendarCard.classList.remove('hidden');
+            detailsCard.classList.remove('hidden');
             state.recordDates = new Set(recordDates);
             state.currentCalendarDate = new Date();
             renderCalendar(calContainer);
+            
+            const todayStr = formatDate(new Date());
+            renderDailyDetails(todayStr); 
+            
+            setTimeout(() => {
+                const todayButton = calContainer.querySelector(`button[data-date="${todayStr}"]`);
+                if (todayButton) {
+                    todayButton.classList.add('bg-emerald-500', 'text-white');
+                }
+            }, 0);
+        } else {
+            calendarCard.classList.remove('hidden');
+            detailsCard.classList.remove('hidden');
+            if(calContainer) calContainer.innerHTML = `<p class="text-center">無法載入日曆資料。</p>`;
+            if(detailsContainer) detailsContainer.innerHTML = '';
         }
-        updateLanguageUI(page);
     }
     
     function renderLatestStatus(status, container) {
@@ -449,8 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (button.classList.contains('day-cell')) {
                     document.querySelectorAll('.day-cell.bg-emerald-500').forEach(el => {
                         el.classList.remove('bg-emerald-500', 'text-white');
-                        el.style.backgroundColor = '';
-                        el.style.color = '';
                     });
                     button.classList.add('bg-emerald-500', 'text-white');
                     renderDailyDetails(button.dataset.date);
