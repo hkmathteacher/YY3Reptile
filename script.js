@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // !! 重要設定 !!
     // 請將此處的 URL 替換為您部署後的 Google Apps Script Web App URL
     // =================================================================
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxWRA89h_xbeQgAd9hHhDsr-J4m2zGX_z9DHcWm3U5T5Esh3qwAgKkOdv32R-KCpcSZCQ/exec'; // <-- !! 請務必替換成您自己的 URL !!
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxLecyyS166R8Su0G_Rb_ajmYy7DIv2d748mdZL1y4jVfbgmEjy4uwDeJpTisu5AmgUjg/exec'; // <-- !! 請務必替換成您自己的 URL !!
 
     // --- 全域狀態管理 ---
     const state = {
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingOverlay: document.getElementById('loading-overlay'),
         loginPage: document.getElementById('login-page'),
         mainContent: document.getElementById('main-content'),
-        globalControls: document.getElementById('global-controls'),
+        logoutButton: document.getElementById('logout-button'),
         pages: {
             home: document.getElementById('home-page'),
             form: document.getElementById('form-page'),
@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         headerTitle: document.getElementById('header-title'),
         backButton: document.getElementById('back-button'),
-        logoutButton: document.getElementById('logout-button'),
     };
     
     // --- 語言翻譯資料 ---
@@ -42,13 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // === 核心功能函式 (Core Functions) ===
     // =================================================================
-
     const showLoading = () => DOMElements.loadingOverlay.classList.remove('hidden');
     const hideLoading = () => DOMElements.loadingOverlay.classList.add('hidden');
 
     async function gasApi(action, payload) {
-        if (GAS_URL.includes('YOUR_DEPLOYMENT_ID')) {
-             alert('請先在 JavaScript 程式碼中設定您的 Google Apps Script URL！');
+        if (GAS_URL.includes('YOUR_GAS_URL_HERE')) {
+             alert('請先在 JavaScript 檔案中設定您的 Google Apps Script URL！');
              return null;
         }
         showLoading();
@@ -70,11 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function navigateTo(pageId, onShowCallback) {
         state.currentPage = pageId;
         Object.values(DOMElements.pages).forEach(page => page.style.display = 'none');
-        document.getElementById(pageId).style.display = 'block';
-        
-        const isHomePage = pageId === 'home-page';
-        DOMElements.backButton.classList.toggle('hidden', isHomePage);
-        
+        const targetPage = document.getElementById(pageId);
+        if (targetPage) {
+            targetPage.style.display = 'block';
+        }
+        DOMElements.backButton.classList.toggle('hidden', pageId === 'home-page');
         updateHeaderTitle();
         if (onShowCallback) onShowCallback();
         window.scrollTo(0, 0);
@@ -85,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // === 主題與語言切換 (Theme & Language Toggle) ===
     // =================================================================
-
     function applyTheme(theme) {
         DOMElements.html.classList.toggle('dark', theme === 'dark');
         const isDark = (theme === 'dark');
@@ -101,30 +98,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleLangToggle() {
         state.language = state.language === 'zh' ? 'en' : 'zh';
-        document.querySelectorAll('.lang-toggle').forEach(btn => {
-            btn.textContent = state.language === 'zh' ? 'En' : '中';
-        });
         updateLanguageUI();
-        if (state.currentPage === 'records-page') {
-            const calContainer = document.getElementById('calendar-container');
-            if (calContainer) renderCalendar(calContainer);
-        }
     }
 
     function updateLanguageUI() {
         const lang = translations[state.language];
+        document.querySelectorAll('.lang-toggle').forEach(btn => {
+            btn.textContent = state.language === 'zh' ? 'En' : '中';
+        });
+
         document.querySelectorAll('[data-lang-key]').forEach(el => {
             const key = el.dataset.langKey;
-            const value = lang[key];
-            if (typeof value === 'function') return; 
+            let value = lang[key];
+            if (typeof value === 'function') {
+                // Skip dynamic text, it will be handled by the renderer
+                return;
+            }
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                if(el.type === 'submit' || el.type === 'button') el.value = value || '';
-                else el.placeholder = value || '';
+                 if (el.type === 'submit' || el.type === 'button') {
+                     el.value = value || '';
+                 } else {
+                     el.placeholder = value || '';
+                 }
             } else {
                 el.textContent = value || '';
             }
         });
         updateHeaderTitle();
+        if (state.currentPage === 'records-page') {
+             const calContainer = document.getElementById('calendar-container');
+             if (calContainer) renderCalendar(calContainer);
+        }
     }
 
     function updateHeaderTitle() {
@@ -147,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // === 頁面渲染與邏輯 (Page Rendering & Logic) ===
     // =================================================================
-
     async function handleLogin() {
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
@@ -162,8 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result && result.success) {
             state.currentUser = result.username;
             DOMElements.loginPage.style.display = 'none';
-            DOMElements.mainContent.style.display = 'block';
-            DOMElements.globalControls.classList.remove('hidden');
+            DOMElements.mainContent.style.display = 'flex';
             DOMElements.logoutButton.classList.remove('hidden');
             navigateTo('home-page', setupHomePage);
         } else {
@@ -173,22 +175,22 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function setupHomePage() {
         const page = DOMElements.pages.home;
-        page.innerHTML = `<div id="reptile-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>`;
+        page.innerHTML = `<div id="reptile-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>`;
         const listContainer = document.getElementById('reptile-list');
-        listContainer.innerHTML = `<p>${translations[state.language].fetchingData}</p>`;
+        listContainer.innerHTML = `<p class="text-center">${translations[state.language].fetchingData}</p>`;
         
         const reptiles = await gasApi('getReptiles');
         if (reptiles) {
             renderReptileCards(reptiles, listContainer);
         } else {
-            listContainer.innerHTML = `<p>無法載入爬蟲列表。</p>`;
+            listContainer.innerHTML = `<p class="text-center">無法載入爬蟲列表。</p>`;
         }
     }
 
     function renderReptileCards(reptiles, container) {
         container.innerHTML = '';
         if (!reptiles || reptiles.length === 0) {
-            container.innerHTML = `<p>目前沒有爬蟲資料。</p>`;
+            container.innerHTML = `<p class="text-center">目前沒有爬蟲資料。</p>`;
             return;
         }
         reptiles.forEach(reptile => {
@@ -215,14 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = page.querySelector('#feeding-form');
 
         form.innerHTML = `
-            <div>
-                <label for="form-date" class="block text-sm font-medium" data-lang-key="formDate"></label>
-                <input type="date" id="form-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-            </div>
-            <div>
-                <label for="form-recorder" class="block text-sm font-medium" data-lang-key="formRecorder"></label>
-                <select id="form-recorder" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></select>
-            </div>
+            <div><label for="form-date" class="block text-sm font-medium" data-lang-key="formDate"></label><input type="date" id="form-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
+            <div><label for="form-recorder" class="block text-sm font-medium" data-lang-key="formRecorder"></label><select id="form-recorder" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></select></div>
             <div class="grid grid-cols-2 gap-4">
                 <div><label for="form-temp" class="block text-sm font-medium" data-lang-key="formTemp"></label><input type="number" step="0.1" id="form-temp" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></div>
                 <div><label for="form-humidity" class="block text-sm font-medium" data-lang-key="formHumidity"></label><input type="number" step="1" id="form-humidity" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></div>
@@ -386,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const T = translations[state.language];
         const container = document.getElementById('daily-details');
         if (!container) return;
-        container.innerHTML = `<p>${T.fetchingData}</p>`;
+        container.innerHTML = `<p class="text-center">${T.fetchingData}</p>`;
         
         const records = await gasApi('getRecordsByDate', { reptileName: state.currentReptile.name, date: dateStr });
 
@@ -396,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         container.innerHTML = records.map(rec => {
-            const timestamp = rec.Timestamp ? new Date(rec.Timestamp).toLocaleTimeString() : '';
+            const timestamp = rec.Timestamp ? new Date(rec.Timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
             return `
             <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <p class="text-xs text-gray-400">${rec.Recorder} @ ${timestamp}</p>
@@ -412,23 +408,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =================================================================
-    // === 【核心修正】事件委派 (Event Delegation) ===
+    // === 【核心】事件委派 (Event Delegation) ===
     // =================================================================
     function setupGlobalEventListener() {
         DOMElements.body.addEventListener('click', e => {
             const target = e.target;
-            
-            // --- 全域按鈕 ---
-            if (target.closest('.theme-toggle')) handleThemeToggle();
-            if (target.closest('.lang-toggle')) handleLangToggle();
-            if (target.closest('#back-button')) navigateTo('home-page', setupHomePage);
-            if (target.closest('#logout-button')) window.location.reload();
-            if (target.closest('#login-button')) handleLogin();
+            const button = target.closest('button');
+            if (!button) return;
 
-            // --- 主頁面按鈕 ---
-            const homeButton = target.closest('#home-page button[data-action]');
-            if (homeButton) {
-                const { action, id, name, image } = homeButton.dataset;
+            // --- 全域按鈕 ---
+            if (button.closest('.theme-toggle')) handleThemeToggle();
+            if (button.closest('.lang-toggle')) handleLangToggle();
+            if (button.id === 'back-button') navigateTo('home-page', setupHomePage);
+            if (button.id === 'logout-button') window.location.reload();
+            if (button.id === 'login-button') handleLogin();
+            
+            // --- 主頁面按鈕 (爬蟲卡片) ---
+            if (button.dataset.action && button.closest('#home-page')) {
+                const { action, id, name, image } = button.dataset;
                 state.currentReptile = { id, name, imageUrl: image };
                 if (action === 'feed') navigateTo('form-page', setupFormPage);
                 if (action === 'camera') navigateTo('upload-page', setupUploadPage);
@@ -436,25 +433,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // --- 上傳頁面按鈕 ---
-            if (target.closest('#upload-button')) {
+            if (button.id === 'upload-button') {
                 const fileInput = document.getElementById('file-upload');
                 if (fileInput && fileInput.files[0]) handleFileUpload(fileInput.files[0]);
             }
 
             // --- 記錄頁面日曆按鈕 ---
-            const calendarButton = target.closest('#records-page button');
-            if(calendarButton) {
-                const calContainer = document.getElementById('calendar-container');
-                if (calendarButton.id === 'prev-month') {
+            const calContainer = button.closest('#calendar-container');
+            if (calContainer) {
+                if (button.id === 'prev-month') {
                     state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() - 1);
-                    if(calContainer) renderCalendar(calContainer);
-                } else if (calendarButton.id === 'next-month') {
+                    renderCalendar(calContainer);
+                } else if (button.id === 'next-month') {
                     state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() + 1);
-                    if(calContainer) renderCalendar(calContainer);
-                } else if (calendarButton.classList.contains('day-cell')) {
-                    const dateStr = calendarButton.dataset.date;
+                    renderCalendar(calContainer);
+                } else if (button.classList.contains('day-cell')) {
+                    const dateStr = button.dataset.date;
                     document.querySelectorAll('.day-cell.bg-emerald-500').forEach(el => el.classList.remove('bg-emerald-500', 'text-white'));
-                    calendarButton.classList.add('bg-emerald-500', 'text-white');
+                    button.classList.add('bg-emerald-500', 'text-white');
                     renderDailyDetails(dateStr);
                 }
             }
@@ -468,11 +464,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         DOMElements.body.addEventListener('change', e => {
-            if (e.target.id === 'form-fed-toggle') {
-                document.getElementById('food-details').classList.toggle('hidden', !e.target.checked);
+            const target = e.target;
+            if (target.id === 'form-fed-toggle') {
+                document.getElementById('food-details').classList.toggle('hidden', !target.checked);
             }
-            if (e.target.id === 'file-upload') {
-                const file = e.target.files[0];
+            if (target.id === 'file-upload') {
+                const file = target.files[0];
                 if (!file) return;
                 document.getElementById('file-name').textContent = file.name;
                 const preview = document.getElementById('image-preview');
