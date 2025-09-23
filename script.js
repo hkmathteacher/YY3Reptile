@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // !! 重要設定 !!
     // 請將此處的 URL 替換為您部署後的 Google Apps Script Web App URL
     // =================================================================
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxLecyyS166R8Su0G_Rb_ajmYy7DIv2d748mdZL1y4jVfbgmEjy4uwDeJpTisu5AmgUjg/exec'; // <-- !! 請務必替換成您自己的 URL !!
+    const GAS_URL = 'YOUR_GAS_URL_HERE'; // <-- !! 請務必替換成您自己的 URL !!
 
     // --- 全域狀態管理 ---
     const state = {
@@ -101,19 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLanguageUI();
     }
 
-    function updateLanguageUI() {
+    function updateLanguageUI(container = document) {
         const lang = translations[state.language];
         document.querySelectorAll('.lang-toggle').forEach(btn => {
             btn.textContent = state.language === 'zh' ? 'En' : '中';
         });
 
-        document.querySelectorAll('[data-lang-key]').forEach(el => {
+        container.querySelectorAll('[data-lang-key]').forEach(el => {
             const key = el.dataset.langKey;
-            let value = lang[key];
-            if (typeof value === 'function') {
-                // Skip dynamic text, it will be handled by the renderer
-                return;
-            }
+            const value = lang[key];
+            if (typeof value === 'function') return; 
+            
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
                  if (el.type === 'submit' || el.type === 'button') {
                      el.value = value || '';
@@ -195,11 +193,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         reptiles.forEach(reptile => {
             const card = document.createElement('div');
-            card.className = "bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg transform hover:scale-105 transition-transform duration-300";
+            card.className = "rounded-xl overflow-hidden shadow-lg transform hover:scale-105 transition-transform duration-300";
+            card.style.backgroundColor = 'var(--bg-card)';
             card.innerHTML = `
                 <img class="w-full h-48 object-cover" src="${reptile.ImageURL}" alt="${reptile.Name}" onerror="this.src='https://placehold.co/600x400/555/FFF?text=${reptile.Name}'">
                 <div class="p-4">
-                    <h2 class="text-2xl font-bold mb-4">${reptile.Name}</h2>
+                    <h2 class="text-2xl font-bold mb-4" style="color: var(--text-header);">${reptile.Name}</h2>
                     <div class="grid grid-cols-3 gap-2 text-center">
                         <button data-action="feed" data-id="${reptile.ID}" data-name="${reptile.Name}" class="p-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition flex flex-col items-center"><svg class="w-6 h-6 mb-1 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21a9 9 0 000-18h.01M3 13.92a9 9 0 0013.138 5.163M21 13.92a9 9 0 01-13.138 5.163"></path></svg><span class="text-xs font-semibold pointer-events-none" data-lang-key="feed"></span></button>
                         <button data-action="records" data-id="${reptile.ID}" data-name="${reptile.Name}" data-image="${reptile.ImageURL}" class="p-3 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition flex flex-col items-center"><svg class="w-6 h-6 mb-1 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 012-2h2a2 2 0 012 2v6m-6-13h4m0 0a2 2 0 012 2v2a2 2 0 01-2 2h-4a2 2 0 01-2-2V8a2 2 0 012-2z"></path></svg><span class="text-xs font-semibold pointer-events-none" data-lang-key="records"></span></button>
@@ -208,30 +207,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`;
             container.appendChild(card);
         });
-        updateLanguageUI();
+        updateLanguageUI(container);
     }
     
     async function setupFormPage() {
         const page = DOMElements.pages.form;
-        page.innerHTML = `<form id="feeding-form" class="space-y-6 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"></form>`;
+        page.innerHTML = `<form id="feeding-form" class="space-y-6 p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"></form>`;
         const form = page.querySelector('#feeding-form');
 
         form.innerHTML = `
-            <div><label for="form-date" class="block text-sm font-medium" data-lang-key="formDate"></label><input type="date" id="form-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
-            <div><label for="form-recorder" class="block text-sm font-medium" data-lang-key="formRecorder"></label><select id="form-recorder" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></select></div>
+            <div><label for="form-date" class="block text-sm font-medium" data-lang-key="formDate"></label><input type="date" id="form-date" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
+            <div><label for="form-recorder" class="block text-sm font-medium" data-lang-key="formRecorder"></label><select id="form-recorder" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></select></div>
             <div class="grid grid-cols-2 gap-4">
-                <div><label for="form-temp" class="block text-sm font-medium" data-lang-key="formTemp"></label><input type="number" step="0.1" id="form-temp" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></div>
-                <div><label for="form-humidity" class="block text-sm font-medium" data-lang-key="formHumidity"></label><input type="number" step="1" id="form-humidity" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></div>
+                <div><label for="form-temp" class="block text-sm font-medium" data-lang-key="formTemp"></label><input type="number" step="0.1" id="form-temp" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm"></div>
+                <div><label for="form-humidity" class="block text-sm font-medium" data-lang-key="formHumidity"></label><input type="number" step="1" id="form-humidity" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm"></div>
             </div>
             <div class="flex items-center justify-between"><span class="font-medium" data-lang-key="formFed"></span><label class="inline-flex relative items-center cursor-pointer"><input type="checkbox" id="form-fed-toggle" class="sr-only peer"><div class="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:bg-emerald-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div></label></div>
-            <div id="food-details" class="space-y-4 hidden pt-4 border-t dark:border-gray-600">
-                 <div><label for="form-food-type" class="block text-sm font-medium" data-lang-key="formFoodType"></label><select id="form-food-type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></select></div>
-                 <div><label for="form-food-quantity" class="block text-sm font-medium" data-lang-key="formFoodQty"></label><input type="number" step="1" id="form-food-quantity" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></div>
+            <div id="food-details" class="space-y-4 hidden pt-4" style="border-top: 1px solid var(--border-color);">
+                 <div><label for="form-food-type" class="block text-sm font-medium" data-lang-key="formFoodType"></label><select id="form-food-type" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm"></select></div>
+                 <div><label for="form-food-quantity" class="block text-sm font-medium" data-lang-key="formFoodQty"></label><input type="number" step="1" id="form-food-quantity" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm"></div>
             </div>
-            <div class="space-y-3 pt-4 border-t dark:border-gray-600">
+            <div class="space-y-3 pt-4" style="border-top: 1px solid var(--border-color);">
                 ${['Water', 'Poop', 'Substrate'].map(item => `<div class="flex items-center justify-between"><span data-lang-key="form${item}"></span><input type="checkbox" id="form-${item.toLowerCase()}-changed" class="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"></div>`).join('')}
             </div>
-            <div><label for="form-notes" class="block text-sm font-medium" data-lang-key="formNotes"></label><textarea id="form-notes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm" data-lang-key="placeholderNotes"></textarea></div>
+            <div><label for="form-notes" class="block text-sm font-medium" data-lang-key="formNotes"></label><textarea id="form-notes" rows="3" style="background-color: var(--bg-input); border-color: var(--border-color);" class="mt-1 block w-full rounded-md border shadow-sm" data-lang-key="placeholderNotes"></textarea></div>
             <button type="submit" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-lg hover:bg-emerald-600 transition-transform transform active:scale-95" data-lang-key="submit"></button>
         `;
         
@@ -244,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (recorderOptions && recorderSelect) recorderSelect.innerHTML = recorderOptions.map(r => `<option value="${r.Name}" ${r.Name === state.currentUser ? 'selected' : ''}>${r.Name}</option>`).join('');
         });
         
-        updateLanguageUI();
+        updateLanguageUI(page);
     }
 
     async function handleFormSubmit() {
@@ -275,18 +274,18 @@ document.addEventListener('DOMContentLoaded', () => {
     async function setupUploadPage() {
         const page = DOMElements.pages.upload;
         page.innerHTML = `
-            <div class="flex flex-col items-center space-y-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-                <label for="file-upload" class="cursor-pointer w-full p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                    <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            <div class="flex flex-col items-center space-y-4 p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);">
+                <label for="file-upload" class="cursor-pointer w-full p-8 border-2 border-dashed rounded-lg text-center transition" style="border-color: var(--border-color); color: var(--text-secondary);">
+                    <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                     <p class="mt-2 font-semibold" data-lang-key="uploadClick"></p>
-                    <p class="text-xs text-gray-500" data-lang-key="uploadFileType"></p>
+                    <p class="text-xs" data-lang-key="uploadFileType"></p>
                 </label>
                 <input id="file-upload" type="file" class="hidden" accept="image/*,video/*">
-                <div id="file-preview-container" class="w-full hidden"><p class="font-semibold text-sm mb-2">預覽:</p><img id="image-preview" class="max-w-full rounded-lg mx-auto"><p id="file-name" class="text-center text-sm mt-2 text-gray-500"></p></div>
+                <div id="file-preview-container" class="w-full hidden"><p class="font-semibold text-sm mb-2">預覽:</p><img id="image-preview" class="max-w-full rounded-lg mx-auto"><p id="file-name" class="text-center text-sm mt-2" style="color: var(--text-secondary);"></p></div>
                 <button id="upload-button" class="w-full bg-amber-500 text-white font-bold py-3 rounded-lg hover:bg-amber-600 transition-transform transform active:scale-95 hidden" data-lang-key="upload"></button>
             </div>
         `;
-        updateLanguageUI();
+        updateLanguageUI(page);
     }
     
     async function handleFileUpload(file) {
@@ -317,13 +316,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const page = DOMElements.pages.records;
         page.innerHTML = `
             <div class="space-y-6">
-                <div class="text-center"><img class="w-32 h-32 rounded-full mx-auto object-cover shadow-lg border-4 border-white dark:border-gray-800" src="${state.currentReptile.imageUrl}" onerror="this.src='https://placehold.co/200x200/555/FFF?text=${state.currentReptile.name}'"></div>
-                <div id="latest-status" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"></div>
-                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"></div></div>
-                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"></div></div>
+                <div class="text-center"><img class="w-32 h-32 rounded-full mx-auto object-cover shadow-lg border-4" style="border-color: var(--bg-card);" src="${state.currentReptile.imageUrl}" onerror="this.src='https://placehold.co/200x200/555/FFF?text=${state.currentReptile.name}'"></div>
+                <div id="latest-status" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"></div>
+                <div class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"></div></div>
+                <div class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"></div></div>
             </div>
         `;
-        updateLanguageUI();
         
         const [status, recordDates] = await Promise.all([
             gasApi('getLatestStatus', { reptileName: state.currentReptile.name }),
@@ -339,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.currentCalendarDate = new Date();
             renderCalendar(calContainer);
         }
+        updateLanguageUI(page);
     }
     
     function renderLatestStatus(status, container) {
@@ -352,10 +351,10 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = `
             <h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordStatus"></h3>
             <div class="grid grid-cols-2 gap-4">
-            ${items.map(item => `<div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-md"><p class="text-sm text-gray-500 dark:text-gray-400">${item.label}</p><p class="font-bold text-lg">${item.value || T.none}</p>${item.detail ? `<p class="text-xs text-gray-400">${item.detail}</p>` : ''}</div>`).join('')}
+            ${items.map(item => `<div class="p-3 rounded-md" style="background-color: var(--bg-main);"><p class="text-sm" style="color: var(--text-secondary);">${item.label}</p><p class="font-bold text-lg">${item.value || T.none}</p>${item.detail ? `<p class="text-xs" style="color: var(--text-secondary);">${item.detail}</p>` : ''}</div>`).join('')}
             </div>
         `;
-        updateLanguageUI();
+        updateLanguageUI(container);
     }
 
     function renderCalendar(container) {
@@ -367,13 +366,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
         container.innerHTML = `
-            <div class="flex justify-between items-center mb-2"><button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">&lt;</button><h4 class="font-bold">${year} / ${month + 1}</h4><button id="next-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">&gt;</button></div>
-            <div class="grid grid-cols-7 text-center text-xs font-bold text-gray-500 dark:text-gray-400">${T.weekdays.map(day => `<div>${day}</div>`).join('')}</div>
+            <div class="flex justify-between items-center mb-2"><button id="prev-month" class="p-2 rounded-full" style="background-color: var(--bg-hover);">&lt;</button><h4 class="font-bold">${year} / ${month + 1}</h4><button id="next-month" class="p-2 rounded-full" style="background-color: var(--bg-hover);">&gt;</button></div>
+            <div class="grid grid-cols-7 text-center text-xs font-bold" style="color: var(--text-secondary);">${T.weekdays.map(day => `<div>${day}</div>`).join('')}</div>
             <div class="grid grid-cols-7 text-center mt-2">${Array(firstDay).fill('<div></div>').join('')}${Array.from({length: daysInMonth}, (_, i) => {
                 const day = i + 1;
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const hasRecord = state.recordDates.has(dateStr);
-                return `<div class="p-1"><button data-date="${dateStr}" class="day-cell w-8 h-8 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-800 transition relative">${day}${hasRecord ? '<span class="calendar-dot"></span>' : ''}</button></div>`;
+                return `<div class="p-1"><button data-date="${dateStr}" class="day-cell w-8 h-8 rounded-full transition relative">${day}${hasRecord ? '<span class="calendar-dot"></span>' : ''}</button></div>`;
             }).join('')}</div>
         `;
     }
@@ -387,22 +386,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const records = await gasApi('getRecordsByDate', { reptileName: state.currentReptile.name, date: dateStr });
 
         if (!records || records.length === 0) {
-            container.innerHTML = `<p class="text-center text-gray-500">${T.noRecord}</p>`;
+            container.innerHTML = `<p class="text-center" style="color: var(--text-secondary);">${T.noRecord}</p>`;
             return;
         }
 
         container.innerHTML = records.map(rec => {
             const timestamp = rec.Timestamp ? new Date(rec.Timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
             return `
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <p class="text-xs text-gray-400">${rec.Recorder} @ ${timestamp}</p>
+            <div class="p-3 rounded-lg" style="background-color: var(--bg-main);">
+                <p class="text-xs" style="color: var(--text-secondary);">${rec.Recorder} @ ${timestamp}</p>
                 <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-sm">
                     ${rec.Fed ? `<p><strong>${T.formFoodType}:</strong> ${rec.FoodType} (${rec.FoodQuantity})</p>` : ''}
                     <p><strong>${T.formTemp}:</strong> ${rec.Temperature}°C</p><p><strong>${T.formHumidity}:</strong> ${rec.Humidity}%</p>
                     <p><strong>${T.formWater}:</strong> ${rec.WaterChanged ? '✔' : '✘'}</p><p><strong>${T.formPoop}:</strong> ${rec.CleanedPoop ? '✔' : '✘'}</p>
                     <p><strong>${T.formSubstrate}:</strong> ${rec.SubstrateChanged ? '✔' : '✘'}</p>
                 </div>
-                ${rec.Notes ? `<p class="text-sm mt-2 pt-2 border-t border-gray-200 dark:border-gray-500">${rec.Notes}</p>` : ''}
+                ${rec.Notes ? `<p class="text-sm mt-2 pt-2" style="border-top: 1px solid var(--border-color);">${rec.Notes}</p>` : ''}
             </div>
         `}).join('');
     }

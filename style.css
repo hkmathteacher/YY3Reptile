@@ -1,46 +1,56 @@
+/*
+  =================================================================
+  === 主題顏色定義 (Theme Color Definitions) ===
+  =================================================================
+  我們使用 CSS 變數來實現一個更穩定的亮/深色主題切換。
+  Tailwind 仍然用於佈局，但核心顏色由這裡控制。
+*/
+:root {
+  --bg-main: #F9FAFB;      /* Tailwind gray-50 */
+  --bg-card: #FFFFFF;      /* Tailwind white */
+  --bg-input: #FFFFFF;     /* Tailwind white */
+  --bg-hover: #F3F4F6;      /* Tailwind gray-100 */
+
+  --text-main: #1F2937;    /* Tailwind gray-800 */
+  --text-secondary: #6B7281;/* Tailwind gray-500 */
+  --text-header: #111827;   /* Tailwind gray-900 */
+  
+  --border-color: #E5E7EB; /* Tailwind gray-200 */
+  --ring-color: #10B981;   /* Tailwind emerald-500 */
+}
+
+html.dark {
+  --bg-main: #111827;      /* Tailwind gray-900 */
+  --bg-card: #1F2937;      /* Tailwind gray-800 */
+  --bg-input: #374151;     /* Tailwind gray-700 */
+  --bg-hover: #374151;      /* Tailwind gray-700 */
+  
+  --text-main: #F9FAFB;    /* Tailwind gray-50 */
+  --text-secondary: #9CA3AF;/* Tailwind gray-400 */
+  --text-header: #FFFFFF;   /* Tailwind white */
+  
+  --border-color: #4B5563; /* Tailwind gray-600 */
+  --ring-color: #10B981;   /* Tailwind emerald-500 */
+}
+
+/* 應用主題的基礎樣式
+*/
 body {
-    font-family: 'Noto Sans TC', sans-serif;
-    -webkit-tap-highlight-color: transparent;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition: background-color 0.3s, color 0.3s;
 }
 
-.dark ::-webkit-scrollbar {
-    width: 8px;
-}
-
-.dark ::-webkit-scrollbar-track {
-    background: #1f2937;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-    background: #4b5563;
-    border-radius: 4px;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-    background: #6b7280;
-}
-
-.page {
-    display: none;
-    animation: fadeIn 0.5s;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
+/* 其他自訂樣式
+*/
 .calendar-dot {
     position: absolute;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: #f59e0b; /* 琥珀色 */
-    bottom: 6px;
+    bottom: 4px;
     left: 50%;
     transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: var(--ring-color);
+    border-radius: 50%;
 }
+
