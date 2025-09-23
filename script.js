@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // !! 重要設定 !!
     // 請將此處的 URL 替換為您部署後的 Google Apps Script Web App URL
     // =================================================================
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyB-NySWSBI_yN41DuXbNDb0rfY97VBb-nrNuG3taBksaxKlRgndUWvg77jgLT5FJ8jzA/exec'; // <-- !! 請務必替換成您自己的 URL !!
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzlP7DwYPVG9WDcx4N3OsA2P4dNoUqbv-A9etQ_Q8tyrU89Z_YbeCfNr5ZxZLo4j5p8Eg/exec'; // <-- !! 請務必替換成您自己的 URL !!
 
     // --- 全域狀態管理 ---
     const state = {
@@ -447,10 +447,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() + 1);
                     renderCalendar(calContainer);
                 } else if (button.classList.contains('day-cell')) {
-                    const dateStr = button.dataset.date;
-                    document.querySelectorAll('.day-cell.bg-emerald-500').forEach(el => el.classList.remove('bg-emerald-500', 'text-white'));
+                    document.querySelectorAll('.day-cell.bg-emerald-500').forEach(el => {
+                        el.classList.remove('bg-emerald-500', 'text-white');
+                        el.style.backgroundColor = '';
+                        el.style.color = '';
+                    });
                     button.classList.add('bg-emerald-500', 'text-white');
-                    renderDailyDetails(dateStr);
+                    renderDailyDetails(button.dataset.date);
                 }
             }
         });

@@ -2,8 +2,6 @@
   =================================================================
   === 主題顏色定義 (Theme Color Definitions) ===
   =================================================================
-  我們使用 CSS 變數來實現一個更穩定的亮/深色主題切換。
-  Tailwind 仍然用於佈局，但核心顏色由這裡控制。
 */
 :root {
   --bg-main: #F9FAFB;      /* Tailwind gray-50 */
@@ -33,16 +31,14 @@ html.dark {
   --ring-color: #10B981;   /* Tailwind emerald-500 */
 }
 
-/* 應用主題的基礎樣式
-*/
+/* 應用主題的基礎樣式 */
 body {
   background-color: var(--bg-main);
   color: var(--text-main);
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* 其他自訂樣式
-*/
+/* 其他自訂樣式 */
 .calendar-dot {
     position: absolute;
     bottom: 4px;
