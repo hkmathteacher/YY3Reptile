@@ -1,4 +1,4 @@
- document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
 
     // =================================================================
     // !! 重要設定 !!
@@ -34,10 +34,6 @@
         headerTitle: document.getElementById('header-title'),
         backButton: document.getElementById('back-button'),
         logoutButton: document.getElementById('logout-button'),
-        themeToggle: document.getElementById('theme-toggle'),
-        langToggle: document.getElementById('lang-toggle'),
-        themeIconLight: document.getElementById('theme-icon-light'),
-        themeIconDark: document.getElementById('theme-icon-dark'),
     };
     
     // --- 語言翻譯資料 ---
@@ -47,9 +43,8 @@
     };
 
     // =================================================================
-    // === 核心功能函式 (Core Functions) ===
+    // === 核心功能函式 (Core Functions) - 無變動 ===
     // =================================================================
-
     const showLoading = () => DOMElements.loadingOverlay.classList.remove('hidden');
     const hideLoading = () => DOMElements.loadingOverlay.classList.add('hidden');
 
@@ -74,22 +69,66 @@
         }
     }
 
-    function updateLanguage() {
+    function navigateTo(pageId, onShowCallback) {
+        state.currentPage = pageId;
+        Object.values(DOMElements.pages).forEach(page => page.style.display = 'none');
+        document.getElementById(pageId).style.display = 'block';
+        
+        const isHomePage = pageId === 'home-page';
+        DOMElements.backButton.classList.toggle('hidden', isHomePage);
+        DOMElements.logoutButton.parentElement.classList.toggle('hidden', isHomePage);
+        
+        updateHeaderTitle();
+        if (onShowCallback) onShowCallback();
+        window.scrollTo(0, 0);
+    }
+    
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    
+    // =================================================================
+    // === 主題與語言切換 (Theme & Language Toggle) - 無變動 ===
+    // =================================================================
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            DOMElements.html.classList.add('dark');
+        } else {
+            DOMElements.html.classList.remove('dark');
+        }
+        const isDark = (theme === 'dark');
+        document.querySelectorAll('.theme-icon-light').forEach(icon => icon.classList.toggle('hidden', isDark));
+        document.querySelectorAll('.theme-icon-dark').forEach(icon => icon.classList.toggle('hidden', !isDark));
+    }
+
+    function handleThemeToggle() {
+        const newTheme = DOMElements.html.classList.contains('dark') ? 'light' : 'dark';
+        localStorage.theme = newTheme;
+        applyTheme(newTheme);
+    }
+
+    function handleLangToggle() {
+        state.language = state.language === 'zh' ? 'en' : 'zh';
+        document.querySelectorAll('.lang-toggle').forEach(btn => {
+            btn.textContent = state.language === 'zh' ? 'En' : '中';
+        });
+        updateLanguageUI();
+        if (state.currentPage === 'records-page') renderCalendar();
+    }
+
+    function updateLanguageUI() {
         const lang = translations[state.language];
-        DOMElements.langToggle.textContent = state.language === 'zh' ? 'En' : '中';
         document.querySelectorAll('[data-lang-key]').forEach(el => {
             const key = el.dataset.langKey;
             const value = lang[key];
             if (typeof value === 'function') return; 
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                if (el.placeholder) el.placeholder = value;
+                if (el.placeholder !== undefined) el.placeholder = value || '';
             } else {
-                el.textContent = value;
+                el.textContent = value || '';
             }
         });
         updateHeaderTitle();
     }
-    
+
     function updateHeaderTitle() {
         const T = translations[state.language];
         let title = '';
@@ -101,52 +140,16 @@
         }
         DOMElements.headerTitle.textContent = title;
     }
-
-    function navigateTo(pageId, onShowCallback) {
-        state.currentPage = pageId;
-        Object.values(DOMElements.pages).forEach(page => page.style.display = 'none');
-        document.getElementById(pageId).style.display = 'block';
-        
-        const isHomePage = pageId === 'home-page';
-        DOMElements.backButton.classList.toggle('hidden', isHomePage);
-        DOMElements.logoutButton.classList.toggle('hidden', !isHomePage);
-        
-        updateHeaderTitle();
-        if (onShowCallback) onShowCallback();
-        window.scrollTo(0, 0);
-    }
-    
-    const formatDate = (date) => date.toISOString().split('T')[0];
-    
-    // =================================================================
-    // === 主題切換 (Theme Toggle) ===
-    // =================================================================
-
-    function applyTheme(theme) {
-        const isDark = theme === 'dark';
-        DOMElements.html.classList.toggle('dark', isDark);
-        DOMElements.themeIconLight.classList.toggle('hidden', isDark);
-        DOMElements.themeIconDark.classList.toggle('hidden', !isDark);
-    }
-
-    function handleThemeToggle() {
-        const newTheme = DOMElements.html.classList.contains('dark') ? 'light' : 'dark';
-        localStorage.theme = newTheme;
-        applyTheme(newTheme);
-    }
     
     function initTheme() {
-        let theme = localStorage.theme;
-        if (!theme) {
-            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
+        const theme = localStorage.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         applyTheme(theme);
     }
 
     // =================================================================
-    // === 頁面渲染與邏輯 (Page Rendering & Logic) ===
+    // === 頁面渲染與邏輯 (Page Rendering & Logic) - 無變動 ===
     // =================================================================
-
+    // 此處所有頁面渲染函式 (setupHomePage, renderReptileCards, setupFormPage 等) 保持不變
     function setupLoginPage() {
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
@@ -208,7 +211,7 @@
                 </div>`;
             listContainer.appendChild(card);
         });
-        updateLanguage();
+        updateLanguageUI();
     }
 
     async function setupFormPage() {
@@ -275,7 +278,6 @@
             foodDetails.classList.toggle('hidden', !fedToggle.checked);
         });
 
-        // 非同步載入下拉選單選項
         Promise.all([gasApi('getFoodOptions'), gasApi('getRecorders')]).then(([foodOptions, recorderOptions]) => {
             const foodSelect = document.getElementById('form-food-type');
             const recorderSelect = document.getElementById('form-recorder');
@@ -290,7 +292,7 @@
             }
         });
         
-        updateLanguage();
+        updateLanguageUI();
     }
 
     async function setupUploadPage() {
@@ -337,7 +339,7 @@
                 };
                 reader.readAsDataURL(file);
             } else {
-                imagePreview.src = 'https://placehold.co/600x400/333/FFF?text=Video'; // Placeholder for video
+                imagePreview.src = 'https://placehold.co/600x400/333/FFF?text=Video';
             }
 
             previewContainer.classList.remove('hidden');
@@ -367,7 +369,7 @@
             reader.readAsDataURL(fileToUpload);
         });
         
-        updateLanguage();
+        updateLanguageUI();
     }
 
     async function setupRecordsPage() {
@@ -383,9 +385,8 @@
             <div id="daily-details" class="space-y-3 min-h-[5rem]"></div>
         `;
 
-        updateLanguage();
+        updateLanguageUI();
         
-        // 非同步載入所有資料
         const [status, recordDates] = await Promise.all([
             gasApi('getLatestStatus', { reptileName: state.currentReptile.name }),
             gasApi('getRecordDates', { reptileName: state.currentReptile.name })
@@ -418,6 +419,7 @@
             `).join('')}
             </div>
         `;
+        updateLanguageUI();
     }
 
     function renderCalendar() {
@@ -495,73 +497,76 @@
     // === 事件監聽器 (Event Listeners) ===
     // =================================================================
     
-    DOMElements.themeToggle.addEventListener('click', handleThemeToggle);
-    DOMElements.langToggle.addEventListener('click', () => {
-        state.language = state.language === 'zh' ? 'en' : 'zh';
-        updateLanguage();
-        // 如果在記錄頁面，需要重新渲染日曆以更新星期文字
-        if (state.currentPage === 'records-page') renderCalendar();
-    });
-    
-    DOMElements.backButton.addEventListener('click', () => navigateTo('home-page', setupHomePage));
-    DOMElements.logoutButton.addEventListener('click', () => window.location.reload());
+    function setupEventListeners() {
+        document.querySelectorAll('.theme-toggle').forEach(btn => {
+            btn.addEventListener('click', handleThemeToggle);
+        });
+        document.querySelectorAll('.lang-toggle').forEach(btn => {
+            btn.addEventListener('click', handleLangToggle);
+        });
 
-    DOMElements.pages.home.addEventListener('click', e => {
-        const button = e.target.closest('button[data-action]');
-        if (!button) return;
-        
-        const { action, id, name, image } = button.dataset;
-        state.currentReptile = { id, name, imageUrl: image };
-        
-        if (action === 'feed') navigateTo('form-page', setupFormPage);
-        if (action === 'camera') navigateTo('upload-page', setupUploadPage);
-        if (action === 'records') navigateTo('records-page', setupRecordsPage);
-    });
-    
-    DOMElements.pages.form.addEventListener('submit', async e => {
-        if (e.target.id !== 'feeding-form') return;
-        e.preventDefault();
-        const T = translations[state.language];
-        const isFed = document.getElementById('form-fed-toggle').checked;
-        const formData = {
-            reptileName: state.currentReptile.name,
-            date: document.getElementById('form-date').value,
-            recorder: document.getElementById('form-recorder').value,
-            temperature: document.getElementById('form-temp').value,
-            humidity: document.getElementById('form-humidity').value,
-            fed: isFed,
-            foodType: isFed ? document.getElementById('form-food-type').value : '',
-            foodQuantity: isFed ? document.getElementById('form-food-quantity').value : '',
-            waterChanged: document.getElementById('form-water-changed').checked,
-            cleanedPoop: document.getElementById('form-poop-changed').checked,
-            substrateChanged: document.getElementById('form-substrate-changed').checked,
-            notes: document.getElementById('form-notes').value,
-        };
-        const result = await gasApi('submitLog', formData);
-        if (result && result.success) {
-            alert(T.submitSuccess);
-            navigateTo('home-page', setupHomePage);
-        }
-    });
+        DOMElements.backButton.addEventListener('click', () => navigateTo('home-page', setupHomePage));
+        DOMElements.logoutButton.addEventListener('click', () => window.location.reload());
 
-    DOMElements.pages.records.addEventListener('click', e => {
-        const button = e.target.closest('button');
-        if (!button) return;
+        DOMElements.pages.home.addEventListener('click', e => {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+            
+            const { action, id, name, image } = button.dataset;
+            state.currentReptile = { id, name, imageUrl: image };
+            
+            if (action === 'feed') navigateTo('form-page', setupFormPage);
+            if (action === 'camera') navigateTo('upload-page', setupUploadPage);
+            if (action === 'records') navigateTo('records-page', setupRecordsPage);
+        });
         
-        if (button.id === 'prev-month') {
-            state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() - 1);
-            renderCalendar();
-        } else if (button.id === 'next-month') {
-            state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() + 1);
-            renderCalendar();
-        } else if (button.classList.contains('day-cell')) {
-            const dateStr = button.dataset.date;
-            // 標示選中日期
-            document.querySelectorAll('.day-cell.bg-emerald-500').forEach(el => el.classList.remove('bg-emerald-500', 'text-white'));
-            button.classList.add('bg-emerald-500', 'text-white');
-            renderDailyDetails(dateStr);
-        }
-    });
+        DOMElements.pages.form.addEventListener('submit', async e => {
+            if (e.target.id !== 'feeding-form') return;
+            e.preventDefault();
+            const T = translations[state.language];
+            const isFed = document.getElementById('form-fed-toggle').checked;
+            const formData = {
+                reptileName: state.currentReptile.name,
+                date: document.getElementById('form-date').value,
+                recorder: document.getElementById('form-recorder').value,
+                temperature: document.getElementById('form-temp').value,
+                humidity: document.getElementById('form-humidity').value,
+                fed: isFed,
+                foodType: isFed ? document.getElementById('form-food-type').value : '',
+                foodQuantity: isFed ? document.getElementById('form-food-quantity').value : '',
+                waterChanged: document.getElementById('form-water-changed').checked,
+                cleanedPoop: document.getElementById('form-poop-changed').checked,
+                substrateChanged: document.getElementById('form-substrate-changed').checked,
+                notes: document.getElementById('form-notes').value,
+            };
+            
+            console.log("將要提交的記錄資料 (Submitting log data):", formData);
+
+            const result = await gasApi('submitLog', formData);
+            if (result && result.success) {
+                alert(T.submitSuccess);
+                navigateTo('home-page', setupHomePage);
+            }
+        });
+
+        DOMElements.pages.records.addEventListener('click', e => {
+            const button = e.target.closest('button');
+            if (!button) return;
+            
+            if (button.id === 'prev-month') {
+                state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() - 1);
+                renderCalendar();
+            } else if (button.id === 'next-month') {
+                state.currentCalendarDate.setMonth(state.currentCalendarDate.getMonth() + 1);
+                renderCalendar();
+            } else if (button.classList.contains('day-cell')) {
+                const dateStr = button.dataset.date;
+                document.querySelectorAll('.day-cell.bg-emerald-500').forEach(el => el.classList.remove('bg-emerald-500', 'text-white'));
+                button.classList.add('bg-emerald-500', 'text-white');
+                renderDailyDetails(dateStr);
+            }
+        });
+    }
 
     // =================================================================
     // === 應用程式初始化 (App Initialization) ===
@@ -570,7 +575,8 @@
         initTheme();
         DOMElements.loginPage.style.display = 'flex';
         setupLoginPage();
-        updateLanguage();
+        setupEventListeners();
+        updateLanguageUI();
     }
 
     init();
