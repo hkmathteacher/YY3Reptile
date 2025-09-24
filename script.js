@@ -99,6 +99,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleLangToggle() {
         state.language = state.language === 'zh' ? 'en' : 'zh';
         updateLanguageUI();
+
+        // 【修正】如果正在記錄頁面，則重新渲染日曆以更新語言
+        if (state.currentPage === 'records-page') {
+            const calContainer = document.getElementById('calendar-container');
+            if (calContainer && state.currentCalendarDate) {
+                const selectedDateButton = calContainer.querySelector('.bg-emerald-500');
+                const selectedDate = selectedDateButton ? selectedDateButton.dataset.date : null;
+                renderCalendar(calContainer);
+
+                // 重新選取之前選中的日期
+                if (selectedDate) {
+                    setTimeout(() => {
+                        const buttonToSelect = calContainer.querySelector(`button[data-date="${selectedDate}"]`);
+                        if (buttonToSelect) {
+                            buttonToSelect.classList.add('bg-emerald-500', 'text-white');
+                        }
+                    }, 0);
+                }
+            }
+        }
     }
 
     function updateLanguageUI(container = document) {
@@ -123,10 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         updateHeaderTitle();
-        if (state.currentPage === 'records-page') {
-             const calContainer = document.getElementById('calendar-container');
-             if (calContainer && calContainer.innerHTML) renderCalendar(calContainer);
-        }
     }
 
     function updateHeaderTitle() {
