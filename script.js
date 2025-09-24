@@ -99,26 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleLangToggle() {
         state.language = state.language === 'zh' ? 'en' : 'zh';
         updateLanguageUI();
-
-        // 【修正】如果正在記錄頁面，則重新渲染日曆以更新語言
-        if (state.currentPage === 'records-page') {
-            const calContainer = document.getElementById('calendar-container');
-            if (calContainer && state.currentCalendarDate) {
-                const selectedDateButton = calContainer.querySelector('.bg-emerald-500');
-                const selectedDate = selectedDateButton ? selectedDateButton.dataset.date : null;
-                renderCalendar(calContainer);
-
-                // 重新選取之前選中的日期
-                if (selectedDate) {
-                    setTimeout(() => {
-                        const buttonToSelect = calContainer.querySelector(`button[data-date="${selectedDate}"]`);
-                        if (buttonToSelect) {
-                            buttonToSelect.classList.add('bg-emerald-500', 'text-white');
-                        }
-                    }, 0);
-                }
-            }
-        }
     }
 
     function updateLanguageUI(container = document) {
@@ -143,6 +123,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         updateHeaderTitle();
+        // 【修正】如果正在記錄頁面，則重新渲染日曆以更新語言
+        if (state.currentPage === 'records-page') {
+            const calContainer = document.getElementById('calendar-container');
+            if (calContainer && state.currentCalendarDate) {
+                const selectedDateButton = calContainer.querySelector('.bg-emerald-500');
+                const selectedDate = selectedDateButton ? selectedDateButton.dataset.date : null;
+                renderCalendar(calContainer);
+
+                // 重新選取之前選中的日期
+                if (selectedDate) {
+                    setTimeout(() => {
+                        const buttonToSelect = calContainer.querySelector(`button[data-date="${selectedDate}"]`);
+                        if (buttonToSelect) {
+                            buttonToSelect.classList.add('bg-emerald-500', 'text-white');
+                        }
+                    }, 0);
+                }
+            }
+        }
     }
 
     function updateHeaderTitle() {
@@ -332,45 +331,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const T = translations[state.language];
         const page = DOMElements.pages.records;
 
-        // 1. 設定頁面基本結構，包含載入中的提示
+        // 1. 設定頁面基本結構，只有一個總的載入提示
         page.innerHTML = `
             <div class="space-y-6">
                 <div class="text-center"><img class="w-32 h-32 rounded-full mx-auto object-cover shadow-lg border-4" style="border-color: var(--bg-card);" src="${state.currentReptile.imageUrl}" onerror="this.src='https.placehold.co/200x200/555/FFF?text=${state.currentReptile.name}'"></div>
-                <div id="latest-status" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><p class="text-center">${T.fetchingData}</p></div>
-                <div id="calendar-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"></div></div>
-                <div id="details-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"></div></div>
+                <div id="records-content-wrapper"><p class="text-center p-8">${T.fetchingData}</p></div>
             </div>
         `;
-        updateLanguageUI(page);
 
-        // 2. 獲取必要的 DOM 元素
+        // 2. 一次性獲取所有數據
+        const todayStr = formatDate(new Date());
+        const [statusResult, datesResult, todayDetailsResult] = await Promise.allSettled([
+            gasApi('getLatestStatus', { reptileName: state.currentReptile.name }),
+            gasApi('getRecordDates', { reptileName: state.currentReptile.name }),
+            gasApi('getRecordsByDate', { reptileName: state.currentReptile.name, date: todayStr })
+        ]);
+        
+        // 3. 獲取數據後，建立完整的內容結構
+        const contentWrapper = document.getElementById('records-content-wrapper');
+        contentWrapper.innerHTML = `
+            <div id="latest-status" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"></div>
+            <div id="calendar-card" class="mt-6 p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"></div></div>
+            <div id="details-card" class="mt-6 p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"></div></div>
+        `;
+        
+        // 4. 獲取新的容器元素
         const statusContainer = document.getElementById('latest-status');
         const calContainer = document.getElementById('calendar-container');
+        const detailsContainer = document.getElementById('daily-details');
 
-        // 3. 使用 Promise.allSettled 來確保所有請求都會完成，無論成功或失敗
-        const [statusResult, datesResult] = await Promise.allSettled([
-            gasApi('getLatestStatus', { reptileName: state.currentReptile.name }),
-            gasApi('getRecordDates', { reptileName: state.currentReptile.name })
-        ]);
-
-        // 4. 處理最新狀態的結果
+        // 5. 填充內容
         if (statusResult.status === 'fulfilled' && statusResult.value) {
             renderLatestStatus(statusResult.value, statusContainer);
         } else {
             statusContainer.innerHTML = `<p class="text-center text-red-500">無法載入最新狀態。</p>`;
-            console.error("獲取最新狀態失敗:", statusResult.reason);
         }
 
-        // 5. 處理日曆日期的結果
         if (datesResult.status === 'fulfilled' && datesResult.value) {
             state.recordDates = new Set(datesResult.value);
             state.currentCalendarDate = new Date();
             renderCalendar(calContainer);
-            
-            const todayStr = formatDate(new Date());
-            renderDailyDetails(todayStr); 
-            
-            // 使用 setTimeout 確保 DOM 更新後再選擇元素
+        } else {
+            calContainer.innerHTML = `<p class="text-center text-red-500">無法載入日曆資料。</p>`;
+        }
+        
+        if (todayDetailsResult.status === 'fulfilled' && todayDetailsResult.value) {
+            renderDailyDetails(todayDetailsResult.value, detailsContainer);
             setTimeout(() => {
                 const todayButton = calContainer.querySelector(`button[data-date="${todayStr}"]`);
                 if (todayButton) {
@@ -378,10 +384,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 0);
         } else {
-            calContainer.innerHTML = `<p class="text-center text-red-500">無法載入日曆資料。</p>`;
-            document.getElementById('daily-details').innerHTML = ''; // 清空詳細資料區
-            console.error("獲取記錄日期失敗:", datesResult.reason);
+            renderDailyDetails(null, detailsContainer); // 傳入 null 表示沒有記錄
         }
+        
+        updateLanguageUI(page);
     }
     
     function renderLatestStatus(status, container) {
@@ -405,12 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const T = translations[state.language];
         const date = state.currentCalendarDate;
         
-        // 【錯誤修正】加入保護機制
-        if (!date) {
-            console.error("renderCalendar 被呼叫，但 state.currentCalendarDate 未定義！");
-            container.innerHTML = `<p class="text-center text-red-500">日曆初始化錯誤。</p>`;
-            return;
-        }
+        if (!date) { return; }
 
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -429,13 +430,9 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
     
-    async function renderDailyDetails(dateStr) {
+    function renderDailyDetails(records, container) {
         const T = translations[state.language];
-        const container = document.getElementById('daily-details');
         if (!container) return;
-        container.innerHTML = `<p class="text-center">${T.fetchingData}</p>`;
-        
-        const records = await gasApi('getRecordsByDate', { reptileName: state.currentReptile.name, date: dateStr });
 
         if (!records || records.length === 0) {
             container.innerHTML = `<p class="text-center" style="color: var(--text-secondary);">${T.noRecord}</p>`;
@@ -456,6 +453,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${rec.Notes ? `<p class="text-sm mt-2 pt-2" style="border-top: 1px solid var(--border-color);">${rec.Notes}</p>` : ''}
             </div>
         `}).join('');
+    }
+
+    async function fetchAndRenderDailyDetails(dateStr) {
+        const detailsContainer = document.getElementById('daily-details');
+        const T = translations[state.language];
+        if (!detailsContainer) return;
+        detailsContainer.innerHTML = `<p class="text-center">${T.fetchingData}</p>`;
+        const records = await gasApi('getRecordsByDate', { reptileName: state.currentReptile.name, date: dateStr });
+        renderDailyDetails(records, detailsContainer);
     }
 
     // =================================================================
@@ -503,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         el.classList.remove('bg-emerald-500', 'text-white');
                     });
                     button.classList.add('bg-emerald-500', 'text-white');
-                    renderDailyDetails(button.dataset.date);
+                    fetchAndRenderDailyDetails(button.dataset.date);
                 }
             }
         });
