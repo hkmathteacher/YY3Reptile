@@ -313,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function setupRecordsPage() {
-        console.log("--- 正在設定記錄頁面 ---");
         const T = translations[state.language];
         const page = DOMElements.pages.records;
 
@@ -322,8 +321,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="space-y-6">
                 <div class="text-center"><img class="w-32 h-32 rounded-full mx-auto object-cover shadow-lg border-4" style="border-color: var(--bg-card);" src="${state.currentReptile.imageUrl}" onerror="this.src='https.placehold.co/200x200/555/FFF?text=${state.currentReptile.name}'"></div>
                 <div id="latest-status" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><p class="text-center">${T.fetchingData}</p></div>
-                <div id="calendar-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"><p class="text-center">${T.fetchingData}</p></div></div>
-                <div id="details-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"><p class="text-center">${T.fetchingData}</p></div></div>
+                <div id="calendar-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"></div></div>
+                <div id="details-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"></div></div>
             </div>
         `;
         updateLanguageUI(page);
@@ -332,47 +331,41 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusContainer = document.getElementById('latest-status');
         const calContainer = document.getElementById('calendar-container');
 
-        // 3. 分別獲取並渲染各部分數據，確保順序正確
-        console.log("正在獲取最新狀態...");
-        gasApi('getLatestStatus', { reptileName: state.currentReptile.name }).then(status => {
-            if (status && statusContainer) {
-                console.log("成功獲取最新狀態，正在渲染:", status);
-                renderLatestStatus(status, statusContainer);
-            } else if (statusContainer) {
-                console.error("獲取最新狀態失敗。");
-                statusContainer.innerHTML = `<p class="text-center text-red-500">無法載入最新狀態。</p>`;
-            }
-        });
+        // 3. 使用 Promise.allSettled 來確保所有請求都會完成，無論成功或失敗
+        const [statusResult, datesResult] = await Promise.allSettled([
+            gasApi('getLatestStatus', { reptileName: state.currentReptile.name }),
+            gasApi('getRecordDates', { reptileName: state.currentReptile.name })
+        ]);
 
-        console.log("正在獲取記錄日期...");
-        gasApi('getRecordDates', { reptileName: state.currentReptile.name }).then(recordDates => {
-            if (recordDates && calContainer) {
-                console.log("成功獲取記錄日期，正在渲染日曆:", recordDates);
-                state.recordDates = new Set(recordDates);
-                state.currentCalendarDate = new Date();
-                renderCalendar(calContainer);
-                
-                const todayStr = formatDate(new Date());
-                console.log("正在渲染今日 (" + todayStr + ") 的詳細記錄...");
-                renderDailyDetails(todayStr); 
-                
-                // 使用 setTimeout 確保 DOM 更新後再選擇元素
-                setTimeout(() => {
-                    const todayButton = calContainer.querySelector(`button[data-date="${todayStr}"]`);
-                    if (todayButton) {
-                        console.log("正在標示今日按鈕。");
-                        todayButton.classList.add('bg-emerald-500', 'text-white');
-                    }
-                }, 0);
+        // 4. 處理最新狀態的結果
+        if (statusResult.status === 'fulfilled' && statusResult.value) {
+            renderLatestStatus(statusResult.value, statusContainer);
+        } else {
+            statusContainer.innerHTML = `<p class="text-center text-red-500">無法載入最新狀態。</p>`;
+            console.error("獲取最新狀態失敗:", statusResult.reason);
+        }
 
-            } else if (calContainer) {
-                console.error("獲取記錄日期失敗。");
-                calContainer.innerHTML = `<p class="text-center text-red-500">無法載入日曆資料。</p>`;
-                const detailsContainer = document.getElementById('daily-details');
-                if(detailsContainer) detailsContainer.innerHTML = '';
-            }
-        });
-        console.log("--- 記錄頁面設定完畢 ---");
+        // 5. 處理日曆日期的結果
+        if (datesResult.status === 'fulfilled' && datesResult.value) {
+            state.recordDates = new Set(datesResult.value);
+            state.currentCalendarDate = new Date();
+            renderCalendar(calContainer);
+            
+            const todayStr = formatDate(new Date());
+            renderDailyDetails(todayStr); 
+            
+            // 使用 setTimeout 確保 DOM 更新後再選擇元素
+            setTimeout(() => {
+                const todayButton = calContainer.querySelector(`button[data-date="${todayStr}"]`);
+                if (todayButton) {
+                    todayButton.classList.add('bg-emerald-500', 'text-white');
+                }
+            }, 0);
+        } else {
+            calContainer.innerHTML = `<p class="text-center text-red-500">無法載入日曆資料。</p>`;
+            document.getElementById('daily-details').innerHTML = ''; // 清空詳細資料區
+            console.error("獲取記錄日期失敗:", datesResult.reason);
+        }
     }
     
     function renderLatestStatus(status, container) {
@@ -395,6 +388,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCalendar(container) {
         const T = translations[state.language];
         const date = state.currentCalendarDate;
+        
+        // 【錯誤修正】加入保護機制
+        if (!date) {
+            console.error("renderCalendar 被呼叫，但 state.currentCalendarDate 未定義！");
+            container.innerHTML = `<p class="text-center text-red-500">日曆初始化錯誤。</p>`;
+            return;
+        }
+
         const year = date.getFullYear();
         const month = date.getMonth();
         const firstDay = new Date(year, month, 1).getDay();
@@ -406,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="grid grid-cols-7 text-center mt-2">${Array(firstDay).fill('<div></div>').join('')}${Array.from({length: daysInMonth}, (_, i) => {
                 const day = i + 1;
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const hasRecord = state.recordDates.has(dateStr);
+                const hasRecord = state.recordDates && state.recordDates.has(dateStr);
                 return `<div class="p-1"><button data-date="${dateStr}" class="day-cell w-8 h-8 rounded-full transition relative">${day}${hasRecord ? '<span class="calendar-dot"></span>' : ''}</button></div>`;
             }).join('')}</div>
         `;
@@ -526,5 +527,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
-
 
