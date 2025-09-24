@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateHeaderTitle();
         if (state.currentPage === 'records-page') {
              const calContainer = document.getElementById('calendar-container');
-             if (calContainer) renderCalendar(calContainer);
+             if (calContainer && calContainer.innerHTML) renderCalendar(calContainer);
         }
     }
 
@@ -313,67 +313,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function setupRecordsPage() {
+        console.log("--- 正在設定記錄頁面 ---");
+        const T = translations[state.language];
         const page = DOMElements.pages.records;
-        // 1. Set the basic structure
+
+        // 1. 設定頁面基本結構，包含載入中的提示
         page.innerHTML = `
             <div class="space-y-6">
                 <div class="text-center"><img class="w-32 h-32 rounded-full mx-auto object-cover shadow-lg border-4" style="border-color: var(--bg-card);" src="${state.currentReptile.imageUrl}" onerror="this.src='https.placehold.co/200x200/555/FFF?text=${state.currentReptile.name}'"></div>
-                <div id="latest-status" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"></div>
-                <div id="calendar-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"></div></div>
-                <div id="details-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"></div></div>
+                <div id="latest-status" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><p class="text-center">${T.fetchingData}</p></div>
+                <div id="calendar-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordCalendar"></h3><div id="calendar-container"><p class="text-center">${T.fetchingData}</p></div></div>
+                <div id="details-card" class="p-4 rounded-lg shadow-md" style="background-color: var(--bg-card);"><h3 class="text-xl font-bold mb-4 text-center" data-lang-key="recordDailyDetail"></h3><div id="daily-details" class="space-y-3 min-h-[5rem]"><p class="text-center">${T.fetchingData}</p></div></div>
             </div>
         `;
-        
-        // 2. Immediately update the language for static titles
         updateLanguageUI(page);
 
-        // 3. Get the containers
+        // 2. 獲取必要的 DOM 元素
         const statusContainer = document.getElementById('latest-status');
         const calContainer = document.getElementById('calendar-container');
-        const detailsContainer = document.getElementById('daily-details');
-        const calendarCard = document.getElementById('calendar-card');
-        const detailsCard = document.getElementById('details-card');
 
-        // 4. Show loading state in containers
-        statusContainer.innerHTML = `<p class="text-center">${translations[state.language].fetchingData}</p>`;
-        calendarCard.classList.add('hidden'); // Hide cards until data is ready
-        detailsCard.classList.add('hidden');
+        // 3. 分別獲取並渲染各部分數據，確保順序正確
+        console.log("正在獲取最新狀態...");
+        gasApi('getLatestStatus', { reptileName: state.currentReptile.name }).then(status => {
+            if (status && statusContainer) {
+                console.log("成功獲取最新狀態，正在渲染:", status);
+                renderLatestStatus(status, statusContainer);
+            } else if (statusContainer) {
+                console.error("獲取最新狀態失敗。");
+                statusContainer.innerHTML = `<p class="text-center text-red-500">無法載入最新狀態。</p>`;
+            }
+        });
 
-        // 5. Fetch all data
-        const [status, recordDates] = await Promise.all([
-            gasApi('getLatestStatus', { reptileName: state.currentReptile.name }),
-            gasApi('getRecordDates', { reptileName: state.currentReptile.name })
-        ]);
-        
-        // 6. Render content based on fetched data
-        if (status && statusContainer) {
-            renderLatestStatus(status, statusContainer);
-        } else if (statusContainer) {
-            statusContainer.innerHTML = `<p class="text-center">無法載入最新狀態。</p>`;
-        }
+        console.log("正在獲取記錄日期...");
+        gasApi('getRecordDates', { reptileName: state.currentReptile.name }).then(recordDates => {
+            if (recordDates && calContainer) {
+                console.log("成功獲取記錄日期，正在渲染日曆:", recordDates);
+                state.recordDates = new Set(recordDates);
+                state.currentCalendarDate = new Date();
+                renderCalendar(calContainer);
+                
+                const todayStr = formatDate(new Date());
+                console.log("正在渲染今日 (" + todayStr + ") 的詳細記錄...");
+                renderDailyDetails(todayStr); 
+                
+                // 使用 setTimeout 確保 DOM 更新後再選擇元素
+                setTimeout(() => {
+                    const todayButton = calContainer.querySelector(`button[data-date="${todayStr}"]`);
+                    if (todayButton) {
+                        console.log("正在標示今日按鈕。");
+                        todayButton.classList.add('bg-emerald-500', 'text-white');
+                    }
+                }, 0);
 
-        if (recordDates && calContainer) {
-            calendarCard.classList.remove('hidden');
-            detailsCard.classList.remove('hidden');
-            state.recordDates = new Set(recordDates);
-            state.currentCalendarDate = new Date();
-            renderCalendar(calContainer);
-            
-            const todayStr = formatDate(new Date());
-            renderDailyDetails(todayStr); 
-            
-            setTimeout(() => {
-                const todayButton = calContainer.querySelector(`button[data-date="${todayStr}"]`);
-                if (todayButton) {
-                    todayButton.classList.add('bg-emerald-500', 'text-white');
-                }
-            }, 0);
-        } else {
-            calendarCard.classList.remove('hidden');
-            detailsCard.classList.remove('hidden');
-            if(calContainer) calContainer.innerHTML = `<p class="text-center">無法載入日曆資料。</p>`;
-            if(detailsContainer) detailsContainer.innerHTML = '';
-        }
+            } else if (calContainer) {
+                console.error("獲取記錄日期失敗。");
+                calContainer.innerHTML = `<p class="text-center text-red-500">無法載入日曆資料。</p>`;
+                const detailsContainer = document.getElementById('daily-details');
+                if(detailsContainer) detailsContainer.innerHTML = '';
+            }
+        });
+        console.log("--- 記錄頁面設定完畢 ---");
     }
     
     function renderLatestStatus(status, container) {
@@ -527,4 +526,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+
 
